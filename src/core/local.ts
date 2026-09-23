@@ -1,5 +1,5 @@
 import { localAction, type LocalMusicInfo } from '@/store/local'
-import { scanAudioFiles, readMetadata, type MusicMetadata } from '@/utils/localMediaMetadata'
+import { scanAudioFiles, readMetadata, type MusicMetadata, type MusicMetadataFull } from '@/utils/localMediaMetadata'
 import { toast, confirmDialog } from '@/utils/tools'
 import { selectManagedFolder, stat, readDir, externalStorageDirectoryPath, getExternalStoragePaths } from '@/utils/fs'
 import { isExternalStorageManager, requestManageExternalStorage } from '@/utils/nativeModules/utils'
@@ -15,7 +15,7 @@ const generateLocalMusicId = (filePath: string): string => {
   return 'local_' + Math.abs(hash).toString(36) + '_' + filePath.length
 }
 
-const createLocalMusicInfo = async(filePath: string, metadata: MusicMetadata | null, fileSize: number): Promise<LocalMusicInfo> => {
+const createLocalMusicInfo = async(filePath: string, metadata: MusicMetadataFull | null, fileSize: number): Promise<LocalMusicInfo> => {
   const fileName = filePath.split(/[/\\]/).pop() || ''
   const ext = fileName.split('.').pop() || ''
   const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
@@ -117,7 +117,7 @@ export const scanFolderFiles = async(folderPath: string, recursive: boolean = fa
         const fileInfo = await stat(file.path).catch(() => null)
         const fileSize = fileInfo?.size || 0
 
-        let metadata: MusicMetadata | null = null
+        let metadata: MusicMetadataFull | null = null
         try {
           metadata = await readMetadata(file.path)
         } catch (e) {

@@ -71,3 +71,12 @@ buck-out/
 android/.gradle/
 build/
 *.lock
+# project-local signing keystore (fixed signing)
+!android/app/release.keystore
+!android/keystore.properties
+
+# local temp files (not to commit)
+android/apk-list-tmp.txt
+android/gradle-build-current*.log
+push_log.txt
+push_out.txt

@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useState, useCallback } from 'react'
 import { View, TouchableOpacity, StyleSheet } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
-import { useI18n } from '@/lang'
+import { useI18n, type Message } from '@/lang'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Modal from './ModalWrapper'
@@ -13,7 +13,7 @@ export interface SortModalType {
   hide: () => void
 }
 
-const sortTypes: { id: SortType, labelKey: string }[] = [
+const sortTypes: { id: SortType, labelKey: keyof Message }[] = [
   { id: 'name', labelKey: 'local_sort_name' },
   { id: 'singer', labelKey: 'local_sort_singer' },
   { id: 'album', labelKey: 'local_sort_album' },
@@ -22,7 +22,7 @@ const sortTypes: { id: SortType, labelKey: string }[] = [
   { id: 'size', labelKey: 'local_sort_size' },
 ]
 
-const sortOrders: { id: SortOrder, labelKey: string }[] = [
+const sortOrders: { id: SortOrder, labelKey: keyof Message }[] = [
   { id: 'asc', labelKey: 'local_sort_asc' },
   { id: 'desc', labelKey: 'local_sort_desc' },
 ]

@@ -4,13 +4,13 @@ import { View, TouchableOpacity } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
 import { useSettingValue } from '@/store/setting/hook'
 import { updateSetting } from '@/core/common'
-import { useI18n } from '@/lang'
+import { useI18n, type Message } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import SubTitle from '../../components/SubTitle'
 
-const FILE_NAME_OPTIONS: Array<{ value: LX.AppSetting['download.fileName'], label: string }> = [
+const FILE_NAME_OPTIONS: Array<{ value: LX.AppSetting['download.fileName'], label: keyof Message }> = [
   { value: '歌名 - 歌手', label: 'download_config_file_name_1' },
   { value: '歌手 - 歌名', label: 'download_config_file_name_2' },
   { value: '歌名', label: 'download_config_file_name_3' },

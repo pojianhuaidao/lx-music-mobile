@@ -21,13 +21,12 @@ export default memo(() => {
     <CheckBoxItem
       check={autoSwitchSource}
       onChange={handleChange}
-      label={
-        <View style={styles.labelContainer}>
-          <Text>{t('download_config_auto_switch_source')}</Text>
-          <HelpTip content={t('download_config_auto_switch_source_tip')} />
-        </View>
-      }
-    />
+    >
+      <View style={styles.labelContainer}>
+        <Text>{t('download_config_auto_switch_source')}</Text>
+        <HelpTip content={t('download_config_auto_switch_source_tip')} />
+      </View>
+    </CheckBoxItem>
   )
 })
 

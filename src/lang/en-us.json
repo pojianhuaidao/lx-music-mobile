@@ -42,6 +42,7 @@
   "delete": "Remove",
   "dialog_cancel": "No",
   "dialog_confirm": "OK",
+  "dialog_button_confirm": "Confirm",
   "disagree": "Deny",
   "disagree_tip": "Cancelled...",
   "dislike": "Dislike",
