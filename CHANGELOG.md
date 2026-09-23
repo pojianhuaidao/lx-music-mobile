@@ -6,6 +6,19 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.1](https://github.com/lyswhut/lx-music-mobile/compare/v1.8.2...v1.9.1) - 2026-09-24
+
+### 修复
+
+- 修复音源初始化失败 / 一直获取URL的问题，恢复串行等待初始化完成后再进入主界面
+- 修复远程默认音源全部加载失败时默认音源丢失的问题，回退使用现有音源列表首个
+- 移除与野花 / 野草重复的聚合API接口(CF)音源，并自动清理旧版本升级残留
+- 修复 Metro 打包阶段模块解析失败导致构建中断的问题
+
+### 优化
+
+- 内置音源注入增加自动去重（按脚本内容哈希），避免重复音源
+
 ## [1.8.2](https://github.com/lyswhut/lx-music-mobile/compare/v1.8.1...v1.8.2) - 2025-12-22
 
 ### 修复
