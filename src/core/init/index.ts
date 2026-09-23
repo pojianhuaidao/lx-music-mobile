@@ -80,7 +80,7 @@ export default async() => {
   // 同步下载配置到store
   downloadAction.updateConfig({
     savePath: setting['download.savePath'],
-    downloadQuality: setting['download.downloadQuality'],
+    downloadQuality: setting['player.playQuality'],
     maxDownloadNum: setting['download.maxDownloadNum'],
     fileName: setting['download.fileName'],
   })

@@ -60,7 +60,7 @@ const defaultSetting: LX.AppSetting = {
   'search.isShowHotSearch': false,
   'search.isShowHistorySearch': false,
 
-  'list.isClickPlayList': false,
+  'list.isClickPlayList': true,
   'list.isShowSource': true,
   'list.isShowAlbumName': false,
   'list.isShowInterval': true,
@@ -69,7 +69,6 @@ const defaultSetting: LX.AppSetting = {
 
   'download.fileName': '歌名 - 歌手',
   'download.savePath': '/storage/emulated/0/Music/LXMusic',
-  'download.downloadQuality': '128k',
   'download.maxDownloadNum': 3,
   'download.autoSwitchSource': false,
   'download.embedCover': true,

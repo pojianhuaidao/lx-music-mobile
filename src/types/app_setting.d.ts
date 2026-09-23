@@ -352,11 +352,6 @@ declare global {
       'download.savePath': string
 
       /**
-       * 下载音质
-       */
-      'download.downloadQuality': LX.Quality
-
-      /**
        * 最大同时下载数量
        */
       'download.maxDownloadNum': number

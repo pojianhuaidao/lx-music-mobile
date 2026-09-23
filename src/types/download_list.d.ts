@@ -77,7 +77,7 @@ declare namespace LX {
       maxDownloadNum: number          // 最大同时下载数量
       savePath: string                // 保存路径
       fileName: '歌名 - 歌手' | '歌手 - 歌名' | '歌名'  // 文件命名格式
-      downloadQuality: LX.Quality     // 下载音质
+      downloadQuality: LX.Quality     // 下载音质（跟随播放音质）
     }
   }
 }

@@ -28,7 +28,7 @@ const state: InitState = {
     maxDownloadNum: DEFAULT_SETTING['download.maxDownloadNum'],
     savePath: DEFAULT_SETTING['download.savePath'],
     fileName: DEFAULT_SETTING['download.fileName'],
-    downloadQuality: DEFAULT_SETTING['download.downloadQuality'],
+    downloadQuality: DEFAULT_SETTING['player.playQuality'],
   },
 }
 

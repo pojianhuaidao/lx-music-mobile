@@ -7,6 +7,7 @@ import { downloadAction } from '@/store/download'
 import { startDownloadTask, pauseDownloadTask, getRunningTaskCount, isTaskRunning } from './taskManager'
 import { log } from '@/utils/log'
 import downloadState from '@/store/download/state'
+import settingState from '@/store/setting/state'
 
 /**
  * 处理下载队列
@@ -57,7 +58,7 @@ export const addToDownloadQueue = (musicInfo: LX.Music.MusicInfoOnline, quality?
   log.info(`[addToDownloadQueue] 使用下载路径: ${config.savePath}`)
   
   // 使用配置的音质或默认音质
-  const downloadQuality = quality || config.downloadQuality
+  const downloadQuality = quality || settingState.setting['player.playQuality']
   
   // 生成任务ID
   const taskId = `${musicInfo.id}_${downloadQuality}_${Date.now()}`
@@ -113,7 +114,7 @@ export const batchAddToDownloadQueue = (musicList: LX.Music.MusicInfoOnline[], q
   
   // 预先导入模块，避免循环中重复 require
   const { generateFileName, getFileExt } = require('./taskManager')
-  const downloadQuality = quality || config.downloadQuality
+  const downloadQuality = quality || settingState.setting['player.playQuality']
   const ext = getFileExt(downloadQuality)
   const now = Date.now()
   
