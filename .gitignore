@@ -80,3 +80,6 @@ android/apk-list-tmp.txt
 android/gradle-build-current*.log
 push_log.txt
 push_out.txt
+
+# local build output (not to commit)
+output/

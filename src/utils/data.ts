@@ -552,6 +552,44 @@ export const addUserApi = async(script: string): Promise<LX.UserApi.UserApiInfo>
   ])
   return apiInfo
 }
+
+/**
+ * 批量导入多个用户音源脚本。
+ * - 逐个解析脚本，解析失败的对应位置返回 null 并跳过（不写入、不影响其它脚本）；
+ * - 所有成功项合并为一次 saveDataMultiple 写入，减少启动注入内置音源时的 AsyncStorage IPC 次数
+ *   （原逐条 addUserApi：N 次列表全量写 + N 次脚本写 → 批量：1 次列表全量写 + N 次脚本写）。
+ * @returns 与入参 scripts 顺序对齐的结果数组（失败项为 null）
+ */
+export const addUserApis = async(scripts: string[]): Promise<Array<LX.UserApi.UserApiInfo | null>> => {
+  const results: Array<LX.UserApi.UserApiInfo | null> = []
+  const writeEntries: Array<[string, any]> = []
+  for (const script of scripts) {
+    try {
+      const result = /^\/\*[\S|\s]+?\*\//.exec(script)
+      if (!result) throw new Error(global.i18n.t('user_api_add_failed_tip'))
+
+      const scriptInfo = matchInfo(result[0])
+      scriptInfo.name ||= `user_api_${new Date().toLocaleString()}`
+      const apiInfo = {
+        id: `user_api_${Math.random().toString().substring(2, 5)}_${Date.now()}`,
+        ...scriptInfo,
+        script,
+        allowShowUpdateAlert: true,
+      }
+      userApis.push(apiInfo)
+      results.push(apiInfo)
+      writeEntries.push([`${userApiPrefix}${apiInfo.id}`, script])
+    } catch (e) {
+      console.error('addUserApis: skip invalid script', e)
+      results.push(null)
+    }
+  }
+  if (writeEntries.length > 0) {
+    writeEntries.unshift([userApiPrefix, userApis])
+    await saveDataMultiple(writeEntries)
+  }
+  return results
+}
 export const removeUserApi = async(ids: string[]) => {
   if (!userApis) return []
   const _ids: string[] = []

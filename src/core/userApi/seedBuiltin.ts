@@ -1,7 +1,7 @@
 import { Platform } from 'react-native'
 import { getData, saveData } from '@/plugins/storage'
 import { storageDataPrefix } from '@/config/constant'
-import { addUserApi, getUserApiList } from '@/utils/data'
+import { addUserApis, getUserApiList } from '@/utils/data'
 import { readAssetFile } from '@/utils/fs'
 
 const MAX_USER_API = 20
@@ -33,17 +33,41 @@ export const seedBuiltinUserApis = async(): Promise<LX.UserApi.UserApiInfo[]> =>
   const nextSeeded = [...seeded]
   let seededChanged = false
 
-  for (const item of BUILTIN_USER_APIS) {
-    if (seededSet.has(item.id)) continue
-    if (list.length >= MAX_USER_API) continue
-    try {
-      const script = await readAssetFile(`${ASSET_DIR}/${item.file}`)
-      const info = await addUserApi(script)
-      list.push(info)
-      nextSeeded.push(item.id)
-      seededChanged = true
-    } catch (err) {
-      console.log('seed builtin user api failed', item.id, err)
+  // 仅处理未注入过、且未达上限的音源
+  const pending = BUILTIN_USER_APIS.filter(item => !seededSet.has(item.id))
+  const quota = Math.max(0, MAX_USER_API - list.length)
+  const toSeed = pending.slice(0, quota)
+
+  if (toSeed.length > 0) {
+    // 并发读取 8 个资产脚本（并行 IO），再一次性批量写入，减少首启持久化 IPC 次数
+    const readResults = await Promise.allSettled(
+      toSeed.map(item => readAssetFile(`${ASSET_DIR}/${item.file}`)),
+    )
+    const scripts: string[] = []
+    const succeededItems: typeof toSeed = []
+    for (let i = 0; i < toSeed.length; i++) {
+      const r = readResults[i]
+      if (r.status === 'fulfilled') {
+        scripts.push(r.value)
+        succeededItems.push(toSeed[i])
+      } else {
+        console.log('seed builtin user api failed', toSeed[i].id, r.reason)
+      }
+    }
+
+    if (scripts.length > 0) {
+      const infos = await addUserApis(scripts)
+      // addUserApis 与 scripts 顺序对齐，失败项为 null（不标记 seeded，下次启动重试）
+      for (let i = 0; i < infos.length; i++) {
+        const info = infos[i]
+        if (!info) {
+          console.log('seed builtin user api failed', succeededItems[i].id)
+          continue
+        }
+        list.push(info)
+        nextSeeded.push(succeededItems[i].id)
+        seededChanged = true
+      }
     }
   }
 

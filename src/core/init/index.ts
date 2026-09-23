@@ -33,6 +33,27 @@ const handlePushedHomeScreen = async() => {
   }
 }
 
+/**
+ * 音源初始化 + apiSource 校验/设置（自 init 主链移出后独立执行）。
+ * 依赖核实结论：
+ * - initUserApi 仅与「apiSource 校验 / setApiSource」存在依赖，二者保持在其 resolve 后同步执行（时序与串行一致）；
+ * - initPlayer/dataInit/initCommonState/initDownloadData/initLocalMusic/initSync 均不依赖音源；
+ * - 搜索/取歌词/取图等音乐功能前均有 global.lx.apiInitPromise 等待音源就绪，首屏提前显示后操作有兜底。
+ */
+const initUserApiAndApiSource = async(setting: LX.AppSetting) => {
+  try {
+    await initUserApi(setting)
+  } catch (error) {
+    console.error('init user api failed', error)
+  }
+  let apiSource = setting['common.apiSource']
+  if (!apiSource || !userApiState.list.some(api => api.id === apiSource)) {
+    apiSource = userApiState.list[0]?.id ?? ''
+  }
+  setApiSource(apiSource)
+  bootLog('Api inited.')
+}
+
 let isInited = false
 export default async() => {
   if (isInited) return handlePushedHomeScreen
@@ -48,15 +69,9 @@ export default async() => {
   await initI18n(setting)
   bootLog('I18n inited.')
 
-  await initUserApi(setting)
+  // 音源初始化移出主串行链：首屏不再等待远程 fetch 与内置音源注入（依赖核实见 initUserApiAndApiSource）
+  void initUserApiAndApiSource(setting)
   bootLog('User Api inited.')
-
-  let apiSource = setting['common.apiSource']
-  if (!apiSource || !userApiState.list.some(api => api.id === apiSource)) {
-    apiSource = userApiState.list[0]?.id ?? ''
-  }
-  setApiSource(apiSource)
-  bootLog('Api inited.')
 
   registerPlaybackService()
   bootLog('Playback Service Registered.')

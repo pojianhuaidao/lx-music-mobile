@@ -78,6 +78,12 @@ const collectAudioFiles = async(folderPath: string, allFiles: Array<{ path: stri
         const isAudio = item.mimeType?.startsWith('audio/') || ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'aac'].includes(ext)
         if (isAudio) {
           allFiles.push({ path: itemPath, name: item.name || '' })
+          // 分层上报：total 用已发现数动态更新，让扫描进度尽早可见
+          localAction.updateScanProgress({
+            current: allFiles.length,
+            total: allFiles.length,
+            currentFile: item.name || '',
+          })
         }
       }
     }
@@ -104,15 +110,12 @@ export const scanFolderFiles = async(folderPath: string, recursive: boolean = fa
     const total = filesToProcess.length
     localAction.updateScanProgress({ current: 0, total, currentFile: '' })
 
-    for (let i = 0; i < filesToProcess.length; i++) {
-      const file = filesToProcess[i]
-
-      localAction.updateScanProgress({
-        current: i + 1,
-        total,
-        currentFile: file.name,
-      })
-
+    // 限流并发处理（4 并发）：stat/readMetadata/createLocalMusicInfo 均为只读操作，可安全并发；
+    // 结果按原文件顺序归位，保证 addMusics 行为与串行一致
+    const CONCURRENCY = 4
+    let processedCount = 0
+    const processFile = async(index: number): Promise<LocalMusicInfo | null> => {
+      const file = filesToProcess[index]
       try {
         const fileInfo = await stat(file.path).catch(() => null)
         const fileSize = fileInfo?.size || 0
@@ -125,10 +128,39 @@ export const scanFolderFiles = async(folderPath: string, recursive: boolean = fa
         }
 
         const musicInfo = await createLocalMusicInfo(file.path, metadata, fileSize)
-        results.push(musicInfo)
+        processedCount++
+        localAction.updateScanProgress({
+          current: processedCount,
+          total,
+          currentFile: file.name,
+        })
+        return musicInfo
       } catch (e) {
         console.error('Error processing file:', file.path, e)
+        processedCount++
+        localAction.updateScanProgress({
+          current: processedCount,
+          total,
+          currentFile: file.name,
+        })
+        return null
       }
+    }
+
+    const resultsByIndex: Array<LocalMusicInfo | null> = new Array(filesToProcess.length).fill(null)
+    let nextIndex = 0
+    const workerCount = Math.min(CONCURRENCY, filesToProcess.length)
+    const workers = Array.from({ length: workerCount }, async() => {
+      while (true) {
+        const index = nextIndex++
+        if (index >= filesToProcess.length) break
+        resultsByIndex[index] = await processFile(index)
+      }
+    })
+    await Promise.all(workers)
+
+    for (const info of resultsByIndex) {
+      if (info) results.push(info)
     }
   } catch (e) {
     console.error('Error scanning folder:', folderPath, e)

@@ -5,19 +5,27 @@ import { getUserApiList, getDefaultSourcesVersion, saveDefaultSourcesVersion } f
 import { log } from '@/utils/log'
 
 /**
- * 从 URL 获取脚本内容
+ * 从 URL 获取脚本内容（带 5s 超时，避免网络异常时永久挂起阻塞启动）
  */
 const fetchScript = async(url: string): Promise<string> => {
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Cache-Control': 'no-cache',
-    },
-  })
-  if (!response.ok) {
-    throw new Error(`Failed to fetch script from ${url}: ${response.status}`)
+  // RN 运行时自带 AbortController polyfill；tsconfig 无 DOM lib，此处用 any 避免类型缺失
+  const controller = new (globalThis as any).AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5000)
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+      signal: controller.signal,
+    } as any)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch script from ${url}: ${response.status}`)
+    }
+    return response.text()
+  } finally {
+    clearTimeout(timeout)
   }
-  return response.text()
 }
 
 /**
@@ -26,13 +34,25 @@ const fetchScript = async(url: string): Promise<string> => {
 const importAllDefaultSources = async(): Promise<void> => {
   let firstApiId: string | null = null
 
-  for (let i = 0; i < defaultMusicSources.length; i++) {
-    const source = defaultMusicSources[i]
-    try {
+  // 并发抓取所有默认源脚本（网络耗时从串行 3×RTT 降为 1×RTT），再按原顺序逐个导入，
+  // 保持"第一个成功导入的音乐源作为默认源"的原有语义
+  const fetchResults = await Promise.allSettled(
+    defaultMusicSources.map(async source => {
       log.info(`[DefaultSources] Fetching source from: ${source.url}`)
       const script = await fetchScript(source.url)
+      return { source, script }
+    }),
+  )
 
-      await importUserApi(script)
+  for (let i = 0; i < fetchResults.length; i++) {
+    const result = fetchResults[i]
+    const source = defaultMusicSources[i]
+    if (result.status === 'rejected') {
+      log.error(`[DefaultSources] Failed to import ${source.name}: ${(result.reason as Error)?.message ?? String(result.reason)}`)
+      continue
+    }
+    try {
+      await importUserApi(result.value.script)
       log.info(`[DefaultSources] Successfully imported: ${source.name}`)
 
       // 记录第一个成功导入的音乐源 ID
