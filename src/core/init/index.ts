@@ -69,8 +69,8 @@ export default async() => {
   await initI18n(setting)
   bootLog('I18n inited.')
 
-  // 音源初始化移出主串行链：首屏不再等待远程 fetch 与内置音源注入（依赖核实见 initUserApiAndApiSource）
-  void initUserApiAndApiSource(setting)
+  // 音源初始化保持主串行链：确保音源就绪后才进入首屏，避免搜索时 apiInitPromise 仍为初始 resolve(false) 导致误判初始化失败
+  await initUserApiAndApiSource(setting)
   bootLog('User Api inited.')
 
   registerPlaybackService()

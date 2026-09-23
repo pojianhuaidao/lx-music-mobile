@@ -2,6 +2,7 @@ import defaultMusicSources, { DEFAULT_SOURCES_VERSION } from '@/config/defaultMu
 import { importUserApi, removeUserApi } from '@/core/userApi'
 import { setApiSource } from '@/core/apiSource'
 import { getUserApiList, getDefaultSourcesVersion, saveDefaultSourcesVersion } from '@/utils/data'
+import { state as userApiState } from '@/store/userApi/state'
 import { log } from '@/utils/log'
 
 /**
@@ -67,10 +68,14 @@ const importAllDefaultSources = async(): Promise<void> => {
     }
   }
 
-  // 选中第一个成功导入的音乐源
-  if (firstApiId) {
-    log.info(`[DefaultSources] Setting default source: ${firstApiId}`)
-    setApiSource(firstApiId)
+  // 选中第一个成功导入的音乐源；全部抓取/导入失败时回退到现有音源列表首项（避免 apiSource 变空导致搜索静默失效）
+  const fallbackApiId = userApiState.list[0]?.id ?? ''
+  const targetApiId = firstApiId || fallbackApiId
+  if (targetApiId) {
+    log.info(`[DefaultSources] Setting default source: ${targetApiId}`)
+    setApiSource(targetApiId)
+  } else {
+    log.error('[DefaultSources] No available music source, skip setting default source')
   }
 
   // 保存当前默认源版本号

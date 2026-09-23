@@ -1,5 +1,5 @@
 import { Platform } from 'react-native'
-import { getData, saveData } from '@/plugins/storage'
+import { getData, saveData, getDataMultiple } from '@/plugins/storage'
 import { storageDataPrefix } from '@/config/constant'
 import { addUserApis, getUserApiList } from '@/utils/data'
 import { readAssetFile } from '@/utils/fs'
@@ -19,10 +19,26 @@ const BUILTIN_USER_APIS = [
 ] as const
 
 /**
+ * FNV-1a 32 位哈希（纯 JS，用于脚本内容一致性标识；非加密用途）。
+ * 内置音源头部均无 @sourceUrl 元信息（UserApiInfo 类型亦无 sourceUrl 字段），
+ * 故自动去重以「脚本内容 hash」为判据。
+ */
+const fnv1a32 = (input: string): string => {
+  let h = 0x811c9dc5
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h.toString(16)
+}
+
+/**
  * 启动时注入 android/app/src/main/assets/lx-builtin-user-api/ 下的内置音源
  * - 已注入的音源 id 持久化于 storageDataPrefix.builtinUserApiSeed
  * - 用户手动删除某内置音源后，其 id 仍在 seeded 记录中，下次启动不再注入（防止“幽灵音源”复活）
  * - 原版默认音源（defaultMusicSources 机制）在调用本函数前已导入，两者共存
+ * - 自动去重：注入前按脚本内容 hash 与已有 userApi 列表比对，存在同脚本项则跳过注入并标记 seeded，
+ *   保证历史重复（升级前用户已手动添加的相同音源）不叠加、后续每次更新注入不产生重复
  */
 export const seedBuiltinUserApis = async(): Promise<LX.UserApi.UserApiInfo[]> => {
   const list = await getUserApiList()
@@ -39,7 +55,7 @@ export const seedBuiltinUserApis = async(): Promise<LX.UserApi.UserApiInfo[]> =>
   const toSeed = pending.slice(0, quota)
 
   if (toSeed.length > 0) {
-    // 并发读取 8 个资产脚本（并行 IO），再一次性批量写入，减少首启持久化 IPC 次数
+    // 并发读取资产脚本（并行 IO），再一次性批量写入，减少首启持久化 IPC 次数
     const readResults = await Promise.allSettled(
       toSeed.map(item => readAssetFile(`${ASSET_DIR}/${item.file}`)),
     )
@@ -56,17 +72,53 @@ export const seedBuiltinUserApis = async(): Promise<LX.UserApi.UserApiInfo[]> =>
     }
 
     if (scripts.length > 0) {
-      const infos = await addUserApis(scripts)
-      // addUserApis 与 scripts 顺序对齐，失败项为 null（不标记 seeded，下次启动重试）
-      for (let i = 0; i < infos.length; i++) {
-        const info = infos[i]
-        if (!info) {
-          console.log('seed builtin user api failed', succeededItems[i].id)
-          continue
+      // === 自动去重：按脚本内容 hash 比对已有 userApi 列表 ===
+      const builtinHashes = new Map<string, string>() // 内置源 id -> 脚本 hash
+      for (let i = 0; i < succeededItems.length; i++) {
+        builtinHashes.set(succeededItems[i].id, fnv1a32(scripts[i]))
+      }
+      const builtinDupIds = new Set<string>() // 与已有列表重复的内置源 id
+      if (list.length > 0) {
+        // 批量读取已注入项脚本（一次 multiGet，避免 N 次 IPC）
+        const datas = await getDataMultiple(list.map(item => `${storageDataPrefix.userApi}${item.id}`))
+        list.forEach((item, idx) => {
+          const script = datas[idx]?.[1]
+          if (typeof script !== 'string') return
+          const h = fnv1a32(script)
+          for (const [bid, bh] of builtinHashes) {
+            if (bh === h) builtinDupIds.add(bid)
+          }
+        })
+      }
+
+      const finalScripts: string[] = []
+      const finalItems: typeof succeededItems = []
+      for (let i = 0; i < succeededItems.length; i++) {
+        const item = succeededItems[i]
+        if (builtinDupIds.has(item.id)) {
+          // 已有同脚本项（用户自加或历史注入）：跳过注入避免重复，并标记 seeded 视为已处理
+          nextSeeded.push(item.id)
+          seededChanged = true
+          console.log('seed builtin user api skipped (duplicate exists)', item.id)
+        } else {
+          finalScripts.push(scripts[i])
+          finalItems.push(item)
         }
-        list.push(info)
-        nextSeeded.push(succeededItems[i].id)
-        seededChanged = true
+      }
+
+      if (finalScripts.length > 0) {
+        const infos = await addUserApis(finalScripts)
+        // addUserApis 与 finalScripts 顺序对齐，失败项为 null（不标记 seeded，下次启动重试）
+        for (let i = 0; i < infos.length; i++) {
+          const info = infos[i]
+          if (!info) {
+            console.log('seed builtin user api failed', finalItems[i].id)
+            continue
+          }
+          list.push(info)
+          nextSeeded.push(finalItems[i].id)
+          seededChanged = true
+        }
       }
     }
   }
