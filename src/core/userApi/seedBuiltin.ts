@@ -2,7 +2,7 @@ import { Platform } from 'react-native'
 import { getData, saveData, getDataMultiple } from '@/plugins/storage'
 import { storageDataPrefix } from '@/config/constant'
 import { addUserApis, getUserApiList } from '@/utils/data'
-import { removeUserApi } from '@/core/userApi'
+import { removeUserApi } from '../userApi'
 import { readAssetFile } from '@/utils/fs'
 
 const MAX_USER_API = 20
