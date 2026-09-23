@@ -11,8 +11,8 @@ import { initDeeplink } from './deeplink'
 import { setApiSource } from '@/core/apiSource'
 import commonActions from '@/store/common/action'
 import settingState from '@/store/setting/state'
-import { checkUpdate } from '@/core/version'
 import { bootLog } from '@/utils/bootLog'
+import { state as userApiState } from '@/store/userApi/state'
 import { cheatTip } from '@/utils/tools'
 import { initDownloadData } from '@/core/download'
 import { downloadAction } from '@/store/download'
@@ -25,7 +25,6 @@ const handlePushedHomeScreen = async() => {
   if (settingState.setting['common.isAgreePact']) {
     if (isFirstPush) {
       isFirstPush = false
-      void checkUpdate()
       void initDeeplink()
     }
   } else {
@@ -52,7 +51,11 @@ export default async() => {
   await initUserApi(setting)
   bootLog('User Api inited.')
 
-  setApiSource(setting['common.apiSource'])
+  let apiSource = setting['common.apiSource']
+  if (!apiSource || !userApiState.list.some(api => api.id === apiSource)) {
+    apiSource = userApiState.list[0]?.id ?? ''
+  }
+  setApiSource(apiSource)
   bootLog('Api inited.')
 
   registerPlaybackService()

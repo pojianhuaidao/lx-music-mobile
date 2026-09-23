@@ -42,6 +42,8 @@ export const hash = async(path: string, algorithm: HashAlgorithm) => FileSystem.
 
 export const readFile = async(path: string, encoding?: Encoding) => FileSystem.readFile(path, encoding)
 
+export const readAssetFile = async(path: string, encoding: 'utf8' | 'ascii' | 'base64' = 'utf8') => RNFS.readFileAssets(path, encoding)
+
 
 // export const copyFile = async(fromPath: string, toPath: string) => FileSystem.cp(fromPath, toPath)
 

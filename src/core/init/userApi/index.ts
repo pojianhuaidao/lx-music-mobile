@@ -6,6 +6,7 @@ import { fetchData } from './request'
 import { getUserApiList } from '@/utils/data'
 import { confirmDialog, openUrl, tipDialog } from '@/utils/tools'
 import { initDefaultMusicSources } from './defaultSources'
+import { seedBuiltinUserApis } from '@/core/userApi/seedBuiltin'
 
 
 export default async(setting: LX.AppSetting) => {
@@ -256,5 +257,8 @@ export default async(setting: LX.AppSetting) => {
   setUserApiList(await getUserApiList())
 
   // 初始化默认音乐源（如果用户没有任何音乐源）
-  void initDefaultMusicSources()
+  await initDefaultMusicSources()
+
+  // 注入 assets/lx-builtin-user-api 下的内置音源（与默认音乐源共存）
+  setUserApiList(await seedBuiltinUserApis())
 }

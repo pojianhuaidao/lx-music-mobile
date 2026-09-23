@@ -61,7 +61,7 @@ const saveViewPrevStateThrottle = throttle((state) => {
   void saveData(viewPrevStateKey, state)
 }, 1000)
 
-export const getFontSize = async() => (await getData<number>(fontSizeKey) ?? 1)
+export const getFontSize = async() => (await getData<number>(fontSizeKey) ?? 1.3)
 export const saveFontSize = async(size: number) => {
   await saveData(fontSizeKey, size)
 }

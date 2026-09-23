@@ -9,8 +9,6 @@ import Download from './settings/Download'
 import Sync from './settings/Sync'
 import Backup from './settings/Backup'
 import Other from './settings/Other'
-import Version from './settings/Version'
-import About from './settings/About'
 
 export const SETTING_SCREENS = [
   'basic',
@@ -22,8 +20,6 @@ export const SETTING_SCREENS = [
   'sync',
   'backup',
   'other',
-  'version',
-  'about',
 ] as const
 
 export type SettingScreenIds = typeof SETTING_SCREENS[number]
@@ -58,8 +54,6 @@ const Main = forwardRef<MainType, {}>((props, ref) => {
       case 'sync': return <Sync />
       case 'backup': return <Backup />
       case 'other': return <Other />
-      case 'version': return <Version />
-      case 'about': return <About />
       case 'basic':
       default: return <Basic />
     }

@@ -78,6 +78,7 @@ export const storageDataPrefix = {
   dislikeList: '@dislike_list',
 
   userApi: '@user_api__',
+  builtinUserApiSeed: '@builtin_user_api_seeded_keys',
 
   localMusicList: '@local_music_list',
   localFolders: '@local_folders',
