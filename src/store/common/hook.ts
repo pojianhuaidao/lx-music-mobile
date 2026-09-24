@@ -110,16 +110,3 @@ export const useBgPic = () => {
 }
 
 
-export const useSourceNames = () => {
-  const [value, update] = useState(state.sourceNames)
-
-  useEffect(() => {
-    global.state_event.on('sourceNamesUpdated', update)
-    return () => {
-      global.state_event.off('sourceNamesUpdated', update)
-    }
-  }, [])
-
-  return value
-}
-

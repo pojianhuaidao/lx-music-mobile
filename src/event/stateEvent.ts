@@ -2,7 +2,6 @@ import Event from './Event'
 import type { InitState as CommonState } from '@/store/common/state'
 import type { InitState as ListState } from '@/store/list/state'
 import type { InitState as PlayerState } from '@/store/player/state'
-import type { InitState as VersionState } from '@/store/version/state'
 import type { InitState as DownloadState } from '@/store/download/state'
 import type { InitState as LocalState, LocalMusicInfo, FolderInfo } from '@/store/local/state'
 import { type I18n } from '@/lang'
@@ -94,18 +93,6 @@ export class StateEvent extends Event {
 
   fetchingListStatusUpdated(fetchingListStatus: ListState['fetchingListStatus']) {
     this.emit('fetchingListStatusUpdated', fetchingListStatus)
-  }
-
-  versionInfoUpdated(info: VersionState['versionInfo']) {
-    this.emit('versionInfoUpdated', info)
-  }
-
-  versionInfoIgnoreVersionUpdated(version: VersionState['ignoreVersion']) {
-    this.emit('versionInfoIgnoreVersionUpdated', version)
-  }
-
-  versionDownloadProgressUpdated(progress: VersionState['progress']) {
-    this.emit('versionDownloadProgressUpdated', progress)
   }
 
   componentIdsUpdated(ids: CommonState['componentIds']) {

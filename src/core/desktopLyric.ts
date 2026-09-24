@@ -14,7 +14,6 @@ import {
   setTextSize,
   setShowToggleAnima,
   setSingleLine,
-  setPosition,
   setMaxLineNum,
   setWidth,
   setLyricTextPosition,
@@ -84,7 +83,6 @@ export const setDesktopLyricAlpha = setAlpha
 export const setDesktopLyricTextSize = setTextSize
 export const setShowDesktopLyricToggleAnima = setShowToggleAnima
 export const setDesktopLyricSingleLine = setSingleLine
-export const setDesktopLyricPosition = setPosition
 export const setDesktopLyricMaxLineNum = setMaxLineNum
 export const setDesktopLyricWidth = setWidth
 export const setDesktopLyricTextPosition = async(x: LX.AppSetting['desktopLyric.textPosition.x'] | null, y: LX.AppSetting['desktopLyric.textPosition.y'] | null) => {

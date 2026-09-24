@@ -1,3 +1,7 @@
+### 其他
+
+- 清理废代码：移除自动更新链路（core/version、VersionModal 及其注册、store/version、utils/version.js 的 downloadNewVersion/updateApp、ignoreVersion 相关存储键与事件）及 16 个无引用导出（setDesktopLyricPosition、scanFolder、updateUserListPosition、clearListMusics、getSortList、parseUrlParams、scaleSizeHR、onWindowSizeChange、handleAddToList、useSourceNames、useDownloadConfig、useRunningDownloadsCount、onModalDismissed、useNavigationCommandComplete、useNavigationComponentDidDisappear、useAsyncStorage）与 2 个无引用文件（cryptoTest.ts、ScaledImage.tsx），不涉及功能变更
+
 ### 修改
 
 - 备份与恢复：支持按需勾选备份「播放列表（含默认/喜欢/自建列表）、本地音乐列表、音源、设置数据」，导入/导出按钮改为「导入数据」「导出数据」

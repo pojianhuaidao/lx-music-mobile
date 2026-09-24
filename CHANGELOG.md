@@ -22,6 +22,10 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 - 播放列表备份仅勾选「播放列表」时仍导出 playList_v2 格式，兼容桌面版导入
 
+### 其他
+
+- 清理废代码：移除自动更新链路（core/version、VersionModal 及其注册、store/version、utils/version.js 的 downloadNewVersion/updateApp、ignoreVersion 相关存储键与事件）及 16 个无引用导出（setDesktopLyricPosition、scanFolder、updateUserListPosition、clearListMusics、getSortList、parseUrlParams、scaleSizeHR、onWindowSizeChange、handleAddToList、useSourceNames、useDownloadConfig、useRunningDownloadsCount、onModalDismissed、useNavigationCommandComplete、useNavigationComponentDidDisappear、useAsyncStorage）与 2 个无引用文件（cryptoTest.ts、ScaledImage.tsx），不涉及功能变更
+
 ## [1.9.1](https://github.com/lyswhut/lx-music-mobile/compare/v1.8.2...v1.9.1) - 2026-09-24
 
 ### 修复

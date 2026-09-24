@@ -36,14 +36,6 @@ export const updateUserList = async(listInfos: LX.List.UserListInfo[]) => {
 }
 
 /**
- * 批量移动用户列表位置
- */
-export const updateUserListPosition = async(position: number, ids: string[]) => {
-  await global.list_event.list_update_position(position, ids)
-}
-
-
-/**
  * 批量添加歌曲到列表
  */
 export const addListMusics = async(id: string, musicInfos: LX.Music.MusicInfo[], addMusicLocationType: LX.AddMusicLocationType) => {
@@ -83,13 +75,6 @@ export const updateListMusicPosition = async(listId: string, position: number, i
  */
 export const overwriteListMusics = async(listId: string, musicInfos: LX.Music.MusicInfo[]) => {
   await global.list_event.list_music_overwrite(listId, musicInfos)
-}
-
-/**
- * 覆盖列表内的歌曲
- */
-export const clearListMusics = async(ids: string[]) => {
-  await global.list_event.list_music_clear(ids)
 }
 
 /**

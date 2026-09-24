@@ -52,13 +52,6 @@ export const handleRemove = async(
   }
 }
 
-export const handleAddToList = (
-  musicInfo: LX.Music.MusicInfoLocal,
-  selectedList: LocalMusicInfo[]
-) => {
-  // This will be handled by MusicAddModal
-}
-
 export const handleDeleteFile = async(
   musicInfo: LX.Music.MusicInfoLocal,
   selectedList: LocalMusicInfo[],

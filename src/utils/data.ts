@@ -14,8 +14,6 @@ const userListKey = storageDataPrefix.userList
 const viewPrevStateKey = storageDataPrefix.viewPrevState
 const listScrollPositionKey = storageDataPrefix.listScrollPosition
 const listUpdateInfoKey = storageDataPrefix.listUpdateInfo
-const ignoreVersionKey = storageDataPrefix.ignoreVersion
-const ignoreVersionFailTipTimeKey = storageDataPrefix.ignoreVersionFailTipTimeKey
 const searchSettingKey = storageDataPrefix.searchSetting
 const searchHistoryListKey = storageDataPrefix.searchHistoryList
 const songListSettingKey = storageDataPrefix.songListSetting
@@ -160,38 +158,6 @@ export const overwriteListUpdateInfo = async(ids: string[]) => {
   }
   for (const id of removedIds) delete listUpdateInfo[id]
   saveListUpdateInfoThrottle()
-}
-
-let ignoreVersion: string | null
-export const saveIgnoreVersion = (version: string | null) => {
-  ignoreVersion = version
-  if (version == null) {
-    void removeData(ignoreVersionKey)
-  } else {
-    void saveData(ignoreVersionKey, version)
-  }
-}
-// 获取忽略更新的版本号
-export const getIgnoreVersion = async() => {
-  // eslint-disable-next-line require-atomic-updates
-  if (ignoreVersion === undefined) ignoreVersion = (await getData<string | null>(ignoreVersionKey)) ?? null
-  return ignoreVersion
-}
-
-let ignoreVersionFailTipTime: number | null
-export const saveIgnoreVersionFailTipTime = (time: number | null) => {
-  ignoreVersionFailTipTime = time
-  if (time == null) {
-    void removeData(ignoreVersionFailTipTimeKey)
-  } else {
-    void saveData(ignoreVersionFailTipTimeKey, time)
-  }
-}
-// 获取忽略更新的版本号
-export const getIgnoreVersionFailTipTime = async() => {
-  // eslint-disable-next-line require-atomic-updates
-  if (ignoreVersionFailTipTime === undefined) ignoreVersionFailTipTime = (await getData<number | null>(ignoreVersionFailTipTimeKey))
-  return ignoreVersionFailTipTime ?? 0
 }
 
 let openStoragePath: string | null = ''

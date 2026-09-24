@@ -74,18 +74,6 @@ export const formatPlayTime2 = (time: number) => {
 
 export const isUrl = (path: string) => /https?:\/\//.test(path)
 
-// 解析URL参数为对象
-export const parseUrlParams = (str: string): Record<string, string> => {
-  const params: Record<string, string> = {}
-  if (typeof str !== 'string') return params
-  const paramsArr = str.split('&')
-  for (const param of paramsArr) {
-    let [key, value] = param.split('=')
-    params[key] = value
-  }
-  return params
-}
-
 /**
  * 生成节流函数
  * @param fn 回调

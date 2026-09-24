@@ -16,11 +16,9 @@ import {
   PLAY_DETAIL_SCREEN,
   SONGLIST_DETAIL_SCREEN,
   COMMENT_SCREEN,
-  VERSION_MODAL,
   PACT_MODAL,
   // SETTING_SCREEN,
 } from './screenNames'
-import VersionModal from './components/VersionModal'
 import PactModal from './components/PactModal'
 
 function WrappedComponent(Component: any) {
@@ -42,7 +40,6 @@ export default () => {
   Navigation.registerComponent(PLAY_DETAIL_SCREEN, () => WrappedComponent(PlayDetail))
   Navigation.registerComponent(SONGLIST_DETAIL_SCREEN, () => WrappedComponent(SonglistDetail))
   Navigation.registerComponent(COMMENT_SCREEN, () => WrappedComponent(Comment))
-  Navigation.registerComponent(VERSION_MODAL, () => WrappedComponent(VersionModal))
   Navigation.registerComponent(PACT_MODAL, () => WrappedComponent(PactModal))
   // Navigation.registerComponent(SETTING_SCREEN, () => WrappedComponent(Setting))
 

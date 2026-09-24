@@ -203,4 +203,3 @@ export const clearAll = async() => {
   }
 }
 
-export { useAsyncStorage } from '@react-native-async-storage/async-storage'

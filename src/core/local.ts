@@ -208,38 +208,6 @@ export const selectAndImportFolder = async(): Promise<void> => {
   }
 }
 
-export const scanFolder = async(): Promise<void> => {
-  const folders = localAction.getFolders()
-  if (folders.length === 0) {
-    toast(global.i18n.t('local_folder_empty'))
-    return
-  }
-
-  localAction.setScanning(true)
-
-  try {
-    let totalAdded = 0
-
-    for (const folder of folders) {
-      try {
-        const musics = await scanFolderFiles(folder.path)
-        totalAdded += localAction.addMusics(musics)
-      } catch (e) {
-        console.error('Error scanning folder:', folder.path, e)
-      }
-    }
-
-    if (totalAdded === 0) {
-      toast(global.i18n.t('local_scan_empty'))
-    } else {
-      toast(global.i18n.t('local_scan_complete', { count: totalAdded }))
-    }
-  } finally {
-    localAction.setScanning(false)
-    localAction.updateScanProgress({ current: 0, total: 0, currentFile: '' })
-  }
-}
-
 export const scanAllStorage = async(): Promise<void> => {
   // 检查是否有所有文件访问权限 (Android 11+)
   const hasPermission = await isExternalStorageManager()
