@@ -1,13 +1,14 @@
-import { LIST_IDS } from '@/config/constant'
+import { LIST_IDS, storageDataPrefix } from '@/config/constant'
+import defaultSetting from '@/config/defaultSetting'
 import { createList, getListMusics, overwriteList, overwriteListFull, overwriteListMusics } from '@/core/list'
 import { filterMusicList, fixNewMusicInfoQuality, toNewMusicInfo } from '@/utils'
 import { log } from '@/utils/log'
 import { confirmDialog, handleReadFile, handleSaveFile, showImportTip, toast } from '@/utils/tools'
 import listState from '@/store/list/state'
 import settingState from '@/store/setting/state'
-import { updateSetting } from '@/core/common'
+import { saveData } from '@/plugins/storage'
 import { getLocalMusicList, getUserApiList, getUserApiScript, saveLocalMusicList } from '@/utils/data'
-import { importUserApi } from '@/core/userApi'
+import { importUserApi, removeUserApi } from '@/core/userApi'
 
 export interface BackupSelectOptions {
   playList: boolean
@@ -161,12 +162,53 @@ export const buildExportData = async(options: BackupSelectOptions): Promise<any>
 }
 
 /**
- * 恢复 allData_v3 数据（按字段可选恢复）
+ * 完全替换全部列表数据（默认/喜欢/用户列表）
+ * 直接以备份列表为唯一数据源调用 overwriteListFull 全量覆盖：
+ * 本地多余的列表会被删除，不保留备份中不存在的列表
+ */
+const replaceAllListData = async(lists: Array<LX.List.MyDefaultListInfoFull | LX.List.MyLoveListInfoFull | LX.List.UserListInfoFull>) => {
+  const defaultList = filterMusicList(lists[0]?.list ?? []).map(m => fixNewMusicInfoQuality(m))
+  const loveList = filterMusicList(lists[1]?.list ?? []).map(m => fixNewMusicInfoQuality(m))
+  const userList = lists.slice(2).map((list) => {
+    const l = list as LX.List.UserListInfoFull
+    return {
+      name: l.name,
+      id: l.id,
+      list: filterMusicList(l.list).map(m => fixNewMusicInfoQuality(m)),
+      source: l.source,
+      sourceListId: l.sourceListId,
+      locationUpdateTime: l.locationUpdateTime ?? null,
+    } as LX.List.UserListInfoFull
+  })
+  await overwriteListFull({ defaultList, loveList, userList })
+}
+
+/**
+ * 完全替换设置：以默认设置为基底、备份设置整体覆盖（本地多余键不残留），
+ * 写入内存（settingState.setting）并持久化（@setting_v1），
+ * 通过 configUpdated 全键事件刷新依赖设置的模块
+ */
+const restoreSetting = async(settingData: Partial<LX.AppSetting>) => {
+  const merged = {
+    ...JSON.parse(JSON.stringify(defaultSetting)),
+    ...JSON.parse(JSON.stringify(settingData)),
+    version: defaultSetting.version,
+  } as LX.AppSetting
+  settingState.setting = merged
+  await saveData(storageDataPrefix.setting, merged)
+  global.state_event.configUpdated(Object.keys(settingData) as Array<keyof LX.AppSetting>, settingData)
+}
+
+/**
+ * 恢复 allData_v3 数据（完全替换语义）
  */
 const restoreV3Data = async(data: any) => {
-  if (data.lists) await importNewListData(data.lists)
+  if (data.lists) await replaceAllListData(data.lists)
   if (data.localMusicList) await saveLocalMusicList(data.localMusicList)
-  if (data.userApis && data.userApis.length) {
+  if (data.userApis) {
+    // 完全替换音源：清空当前全部音源（含已注入的内置源）后，整体导入备份音源
+    const currentList = await getUserApiList()
+    if (currentList.length) await removeUserApi(currentList.map(api => api.id))
     for (const api of data.userApis) {
       if (!api.script) continue
       try {
@@ -175,8 +217,12 @@ const restoreV3Data = async(data: any) => {
         log.error(err)
       }
     }
+    // 重置内置源 seed 记录：若不重置，重启时 seedBuiltin 会因 seed 残留而跳过内置源注入，
+    // 导致内置源（野花/野草等）在清空后永久丢失。重置后重启会按需重新注入内置源；
+    // 若备份中已含同脚本内置源，seedBuiltin 注入前会按 hash 去重跳过，不会重复注入或顶掉备份源。
+    await saveData(storageDataPrefix.builtinUserApiSeed, [])
   }
-  if (data.setting) updateSetting(data.setting)
+  if (data.setting) await restoreSetting(data.setting)
 }
 
 const importData = async(path: string) => {
