@@ -1,14 +1,9 @@
 import ChoosePath, { type ChoosePathType } from '@/components/common/ChoosePath'
 import { LXM_FILE_EXT_RXP } from '@/config/constant'
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
-import { handleExportList, handleImportList } from './actions'
+import { handleExportData, handleImportData, type BackupSelectOptions } from './actions'
 
 export interface SelectInfo {
-  // listInfo: LX.List.MyListInfo
-  // selectedList: LX.Music.MusicInfo[]
-  // index: number
-  // listId: string
-  // single: boolean
   action: 'import' | 'export'
 }
 const initSelectInfo = {}
@@ -25,7 +20,11 @@ export interface ListImportExportType {
   export: () => void
 }
 
-export default forwardRef<ListImportExportType, {}>((props, ref) => {
+interface ListImportExportProps {
+  selectOptions: BackupSelectOptions
+}
+
+export default forwardRef<ListImportExportType, ListImportExportProps>(({ selectOptions }, ref) => {
   const [visible, setVisible] = useState(false)
   const choosePathRef = useRef<ChoosePathType>(null)
   const selectInfoRef = useRef<SelectInfo>((initSelectInfo as SelectInfo))
@@ -76,10 +75,10 @@ export default forwardRef<ListImportExportType, {}>((props, ref) => {
   const onConfirmPath = (path: string) => {
     switch (selectInfoRef.current.action) {
       case 'import':
-        handleImportList(path)
+        handleImportData(path)
         break
       case 'export':
-        handleExportList(path)
+        handleExportData(path, selectOptions)
         break
     }
   }

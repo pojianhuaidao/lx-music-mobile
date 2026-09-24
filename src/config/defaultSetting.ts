@@ -33,6 +33,7 @@ const defaultSetting: LX.AppSetting = {
   'player.isShowNotificationImage': true,
   'player.isS2t': false,
   'player.isShowBluetoothLyric': false,
+  'player.autoSwitchSource': true,
 
   // 'playDetail.isZoomActiveLrc': false,
   // 'playDetail.isShowLyricProgressSetting': false,
@@ -75,8 +76,6 @@ const defaultSetting: LX.AppSetting = {
   'download.embedLyric': true,
   'download.embedLyricTranslation': true,
   'download.embedLyricRoma': true,
-
-  'sync.enable': false,
 
   // 'theme.id': 'blue_plus',
   'theme.id': 'green',

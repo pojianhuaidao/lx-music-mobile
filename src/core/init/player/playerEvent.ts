@@ -1,4 +1,4 @@
-import { playNext, setMusicUrl } from '@/core/player/player'
+import { playNext, setMusicUrl, handleAutoSwitchSource, resetAutoSwitchState } from '@/core/player/player'
 import { setStatusText } from '@/core/player/playStatus'
 import { getPosition, isEmpty, setStop } from '@/plugins/player'
 import { isActive } from '@/utils/tools'
@@ -13,6 +13,7 @@ export default () => {
 
   let loadingTimeout: number | null = null
   let delayNextTimeout: number | null = null
+  let autoSwitchTimeout: number | null = null
   const startLoadingTimeout = () => {
     // console.log('start load timeout')
     clearLoadingTimeout()
@@ -29,7 +30,10 @@ export default () => {
         void playNext(true)
       } else {
         prevTimeoutId = playerState.musicInfo.id
-        if (playerState.playMusicInfo.musicInfo) setMusicUrl(playerState.playMusicInfo.musicInfo, true)
+        if (playerState.playMusicInfo.musicInfo) {
+          setMusicUrl(playerState.playMusicInfo.musicInfo, true)
+          startAutoSwitchTimeout()
+        }
       }
     }, 25000)
   }
@@ -38,6 +42,21 @@ export default () => {
     // console.log('clear load timeout')
     BackgroundTimer.clearTimeout(loadingTimeout)
     loadingTimeout = null
+  }
+
+  // 自动换源：两分钟未开始播放触发换源协议（由 playerPlaying / 切歌时清除或重启）
+  const startAutoSwitchTimeout = () => {
+    clearAutoSwitchTimeout()
+    autoSwitchTimeout = BackgroundTimer.setTimeout(() => {
+      autoSwitchTimeout = null
+      if (global.lx.isPlayedStop) return
+      void handleAutoSwitchSource()
+    }, 120000)
+  }
+  const clearAutoSwitchTimeout = () => {
+    if (!autoSwitchTimeout) return
+    BackgroundTimer.clearTimeout(autoSwitchTimeout)
+    autoSwitchTimeout = null
   }
 
   const clearDelayNextTimeout = () => {
@@ -75,6 +94,7 @@ export default () => {
   const handlePlaying = () => {
     setStatusText('')
     clearLoadingTimeout()
+    clearAutoSwitchTimeout()
   }
 
   const handleEmpied = () => {
@@ -99,6 +119,7 @@ export default () => {
         if (playerState.playMusicInfo.musicInfo !== musicInfo) return
         retryNum++
         setMusicUrl(playerState.playMusicInfo.musicInfo, true)
+        startAutoSwitchTimeout()
         setStatusText(global.i18n.t('player__refresh_url'))
       })
       return
@@ -119,6 +140,8 @@ export default () => {
     prevTimeoutId = null
     clearDelayNextTimeout()
     clearLoadingTimeout()
+    resetAutoSwitchState()
+    startAutoSwitchTimeout()
   }
 
   // const handlePlayedStop = () => {

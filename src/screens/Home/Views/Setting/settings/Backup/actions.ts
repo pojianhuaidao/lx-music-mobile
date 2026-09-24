@@ -4,7 +4,17 @@ import { filterMusicList, fixNewMusicInfoQuality, toNewMusicInfo } from '@/utils
 import { log } from '@/utils/log'
 import { confirmDialog, handleReadFile, handleSaveFile, showImportTip, toast } from '@/utils/tools'
 import listState from '@/store/list/state'
+import settingState from '@/store/setting/state'
+import { updateSetting } from '@/core/common'
+import { getLocalMusicList, getUserApiList, getUserApiScript, saveLocalMusicList } from '@/utils/data'
+import { importUserApi } from '@/core/userApi'
 
+export interface BackupSelectOptions {
+  playList: boolean
+  localMusicList: boolean
+  userApi: boolean
+  setting: boolean
+}
 
 const getAllLists = async() => {
   const lists = []
@@ -113,7 +123,63 @@ export const handleImportListPart = async(listData: LX.ConfigFile.MyListInfoPart
   })
 }
 
-const importPlayList = async(path: string) => {
+/**
+ * 收集音源信息（含脚本内容）
+ */
+const getUserApisWithScript = async() => {
+  const list = await getUserApiList()
+  const result: Array<LX.UserApi.UserApiInfo & { script?: string }> = []
+  for (const api of list) {
+    try {
+      const script = await getUserApiScript(api.id)
+      result.push({ ...api, script })
+    } catch (err) {
+      log.error(err)
+    }
+  }
+  return result
+}
+
+/**
+ * 按勾选组装备份数据：
+ * - 仅勾选播放列表时保持 playList_v2 兼容桌面版备份文件
+ * - 勾选其它数据时导出 allData_v3（按字段可选）
+ */
+export const buildExportData = async(options: BackupSelectOptions): Promise<any> => {
+  if (!options.playList && !options.localMusicList && !options.userApi && !options.setting) {
+    throw new Error(global.i18n.t('setting_backup_part_export_empty_tip'))
+  }
+  if (options.playList && !options.localMusicList && !options.userApi && !options.setting) {
+    return { type: 'playList_v2', data: await getAllLists() }
+  }
+  const data: any = {}
+  if (options.playList) data.lists = await getAllLists()
+  if (options.localMusicList) data.localMusicList = await getLocalMusicList()
+  if (options.userApi) data.userApis = await getUserApisWithScript()
+  if (options.setting) data.setting = JSON.parse(JSON.stringify({ ...settingState.setting }))
+  return { type: 'allData_v3', data }
+}
+
+/**
+ * 恢复 allData_v3 数据（按字段可选恢复）
+ */
+const restoreV3Data = async(data: any) => {
+  if (data.lists) await importNewListData(data.lists)
+  if (data.localMusicList) await saveLocalMusicList(data.localMusicList)
+  if (data.userApis && data.userApis.length) {
+    for (const api of data.userApis) {
+      if (!api.script) continue
+      try {
+        await importUserApi(api.script)
+      } catch (err) {
+        log.error(err)
+      }
+    }
+  }
+  if (data.setting) updateSetting(data.setting)
+}
+
+const importData = async(path: string) => {
   let configData: any
   try {
     configData = await handleReadFile(path)
@@ -144,6 +210,9 @@ const importPlayList = async(path: string) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await importNewListData(configData.playList)
       break
+    case 'allData_v3':
+      await restoreV3Data(configData.data)
+      break
     case 'playListPart':
       configData.data.list = filterMusicList((configData.data as LX.ConfigFile.MyListInfoPart['data']).list.map(m => toNewMusicInfo(m)))
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -159,37 +228,65 @@ const importPlayList = async(path: string) => {
   }
 }
 
-export const handleImportList = (path: string) => {
+export const handleImportData = (path: string) => {
   console.log(path)
-  toast(global.i18n.t('setting_backup_part_import_list_tip_unzip'))
-  void importPlayList(path).then((skipTip) => {
+  toast(global.i18n.t('setting_backup_part_import_tip_running'))
+  void importData(path).then((skipTip) => {
     if (skipTip) return
-    toast(global.i18n.t('setting_backup_part_import_list_tip_success'))
+    toast(global.i18n.t('setting_backup_part_import_tip_success'))
   }).catch((err) => {
     log.error(err)
-    toast(global.i18n.t('setting_backup_part_import_list_tip_error'))
+    toast(global.i18n.t('setting_backup_part_import_tip_failed'))
   })
 }
 
-
-const exportAllList = async(path: string) => {
-  const data = JSON.parse(JSON.stringify({
-    type: 'playList_v2',
-    data: await getAllLists(),
-  }))
-
-  try {
-    await handleSaveFile(path + '/lx_list.lxmc', data)
-  } catch (error: any) {
-    log.error(error.stack)
+/**
+ * 导入已解析的备份数据（WebDAV 下载后调用）
+ */
+export const importDataFromJson = async(configData: any) => {
+  switch (configData.type) {
+    case 'defautlList':
+      await overwriteListMusics(LIST_IDS.DEFAULT, filterMusicList((configData.data as LX.List.MyDefaultListInfoFull).list.map(m => toNewMusicInfo(m))))
+      break
+    case 'playList':
+      await importOldListData(configData.data)
+      break
+    case 'playList_v2':
+      await importNewListData(configData.data)
+      break
+    case 'allData':
+      if (configData.defaultList) await overwriteListMusics(LIST_IDS.DEFAULT, filterMusicList((configData.defaultList as LX.List.MyDefaultListInfoFull).list.map(m => toNewMusicInfo(m))))
+      else await importOldListData(configData.playList)
+      break
+    case 'allData_v2':
+      await importNewListData(configData.playList)
+      break
+    case 'allData_v3':
+      await restoreV3Data(configData.data)
+      break
+    case 'playListPart':
+      configData.data.list = filterMusicList((configData.data as LX.ConfigFile.MyListInfoPart['data']).list.map(m => toNewMusicInfo(m)))
+      void handleImportListPart(configData.data)
+      break
+    case 'playListPart_v2':
+      configData.data.list = filterMusicList((configData.data as LX.ConfigFile.MyListInfoPart['data']).list).map(m => fixNewMusicInfoQuality(m))
+      void handleImportListPart(configData.data)
+      break
+    default: showImportTip(configData.type)
   }
 }
-export const handleExportList = (path: string) => {
-  toast(global.i18n.t('setting_backup_part_export_list_tip_zip'))
-  void exportAllList(path).then(() => {
-    toast(global.i18n.t('setting_backup_part_export_list_tip_success'))
+
+const exportDataToPath = async(path: string, options: BackupSelectOptions) => {
+  const data = await buildExportData(options)
+  const fileName = data.type === 'playList_v2' ? 'lx_list.lxmc' : 'lx_data.lxmc'
+  await handleSaveFile(`${path}/${fileName}`, data)
+}
+export const handleExportData = (path: string, options: BackupSelectOptions) => {
+  toast(global.i18n.t('setting_backup_part_export_tip_running'))
+  void exportDataToPath(path, options).then(() => {
+    toast(global.i18n.t('setting_backup_part_export_tip_success'))
   }).catch((err: any) => {
     log.error(err.message)
-    toast(global.i18n.t('setting_backup_part_export_list_tip_failed') + ': ' + (err.message as string))
+    toast(global.i18n.t('setting_backup_part_export_tip_failed') + ': ' + (err.message as string))
   })
 }

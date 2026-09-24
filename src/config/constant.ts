@@ -51,10 +51,6 @@ export const storageDataPrefix = {
   musicOtherSource: '@music_other_source__',
   playInfo: '@play_info',
 
-  syncAuthKey: '@sync_auth_key',
-  syncHost: '@sync_host',
-  syncHostHistory: '@sync_host_history',
-
   openStoragePath: '@open_storage_path',
   selectedManagedFolder: '@selected_managed_folder',
   notificationTipEnable: '@notification_tip_enable',
@@ -81,6 +77,7 @@ export const storageDataPrefix = {
   builtinUserApiSeed: '@builtin_user_api_seeded_keys',
 
   localMusicList: '@local_music_list',
+  webdavConfig: '@webdav_config',
   localFolders: '@local_folders',
   localExcludedIds: '@local_excluded_ids',
   defaultSourcesVersion: '@default_sources_version',
@@ -95,9 +92,6 @@ export const storageDataPrefixOld = {
   // lyric: '@lyric__',
   // musicUrl: '@music_url__',
   playInfo: '@play_info',
-  syncAuthKey: '@sync_auth_key',
-  syncHost: '@sync_host',
-  syncHostHistory: '@sync_host_history',
   notificationTipEnable: '@notification_tip_enable',
 } as const
 
@@ -118,6 +112,9 @@ export type NAV_ID_Type = typeof NAV_MENUS[number]['id']
 
 export const LXM_FILE_EXT_RXP = ['json', 'lxmc', 'bin']
 export const USER_API_SOURCE_FILE_EXT_RXP = ['js']
+// WebDAV 备份：远端目录与文件名
+export const LX_BACKUP_DIR = 'LX Backup'
+export const LX_DATA_FILE_NAME = 'lx_data.lxmc'
 
 export const MUSIC_TOGGLE_MODE = {
   listLoop: 'listLoop', // 列表循环

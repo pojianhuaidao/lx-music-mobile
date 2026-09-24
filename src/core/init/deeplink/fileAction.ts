@@ -1,5 +1,5 @@
 import { readMetadata } from '@/utils/localMediaMetadata'
-import { handleImportList } from '@/screens/Home/Views/Setting/settings/Backup/actions'
+import { handleImportData } from '@/screens/Home/Views/Setting/settings/Backup/actions'
 import { handleImportLocalFile } from '@/screens/Home/Views/Setting/settings/Basic/UserApiEditModal/action'
 import { type FileType } from '@/utils/fs'
 import { confirmDialog } from '@/utils/tools'
@@ -15,7 +15,7 @@ export const handleFileLXMCAction = async(file: FileType) => {
     message: global.i18n.t('deep_link_file_lxmc_confirm_tip', { name: file.name }),
   }))) return
 
-  handleImportList(file.path)
+  handleImportData(file.path)
 }
 
 export const handleFileMusicAction = async(file: FileType) => {

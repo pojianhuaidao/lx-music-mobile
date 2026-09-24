@@ -20,6 +20,7 @@ import {
   removeTempPlayList,
 } from '@/core/player/tempPlayList'
 import { getMusicUrl, getPicPath, getLyricInfo } from '@/core/music'
+import { getOtherSource, getOnlineOtherSourceMusicUrl } from '@/core/music/utils'
 import { requestMsg } from '@/utils/message'
 import { getRandom } from '@/utils/common'
 import { filterList } from './utils'
@@ -72,6 +73,15 @@ const diffCurrentMusicInfo = (curMusicInfo: LX.Music.MusicInfo | LX.Download.Lis
 }
 
 let cancelDelayRetry: (() => void) | null = null
+
+// 自动换源状态：单曲换源次数与"本次是否已成功获取 URL（含缓存命中，即视为连上过）"
+let autoSwitchNum = 0
+let currentMusicUrlGot = false
+
+export const resetAutoSwitchState = () => {
+  autoSwitchNum = 0
+  currentMusicUrlGot = false
+}
 const delayRetry = async(musicInfo: LX.Music.MusicInfo | LX.Download.ListItem, isRefresh = false): Promise<string | null> => {
   // if (cancelDelayRetry) cancelDelayRetry()
   return new Promise<string | null>((resolve, reject) => {
@@ -139,6 +149,7 @@ export const setMusicUrl = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
   global.lx.gettingUrlId = createGettingUrlId(musicInfo)
   void getMusicPlayUrl(musicInfo, isRefresh).then((url) => {
     if (!url) return
+    currentMusicUrlGot = true
     setResource(musicInfo, url, playerState.progress.nowPlayTime)
   }).catch((err: any) => {
     console.log(err)
@@ -151,6 +162,53 @@ export const setMusicUrl = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
       clearLoadTimeout()
     }
   })
+}
+
+/**
+ * 播放失败自动换源：由 playerEvent 的 120s 定时器触发
+ * 本次已成功获取 URL（含缓存命中）即视为连上过，不触发换源；
+ * 单曲最多换源 2 次，仍无法播放则跳下一首（防死循环）
+ */
+export const handleAutoSwitchSource = async() => {
+  if (global.lx.isPlayedStop) return
+  const playMusicInfo = playerState.playMusicInfo
+  const musicInfo = playMusicInfo.musicInfo
+  if (!musicInfo || playerState.isPlay) return
+  if (musicInfo.id != playerState.playMusicInfo.musicInfo?.id) return
+  if (!settingState.setting['player.autoSwitchSource']) return
+  // 已成功获取 URL（含缓存命中）即视为连上过，等待现有重试/超时链路
+  if (currentMusicUrlGot) return
+
+  if (autoSwitchNum >= 2) {
+    autoSwitchNum = 0
+    setStatusText(global.i18n.t('auto_switch_source_failed'))
+    void playNext(true)
+    return
+  }
+
+  setStatusText(global.i18n.t('toggle_source_auto_tip'))
+  try {
+    const otherSource = await getOtherSource(musicInfo)
+    if (!otherSource.length || musicInfo.id != playerState.playMusicInfo.musicInfo?.id || playerState.isPlay) return
+    const result = await getOnlineOtherSourceMusicUrl({
+      musicInfos: [...otherSource],
+      onToggleSource() {
+        if (musicInfo.id != playerState.playMusicInfo.musicInfo?.id) return
+        setStatusText(global.i18n.t('toggle_source_try'))
+      },
+      isRefresh: true,
+    })
+    if (musicInfo.id != playerState.playMusicInfo.musicInfo?.id || playerState.isPlay || !result.url) return
+    autoSwitchNum++
+    setMusicUrl(result.musicInfo, true)
+  } catch (err) {
+    console.log('[autoSwitchSource]', err)
+    if (autoSwitchNum >= 2) {
+      autoSwitchNum = 0
+      setStatusText(global.i18n.t('auto_switch_source_failed'))
+      void playNext(true)
+    }
+  }
 }
 
 // 恢复上次播放的状态

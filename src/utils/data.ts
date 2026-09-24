@@ -21,9 +21,6 @@ const searchHistoryListKey = storageDataPrefix.searchHistoryList
 const songListSettingKey = storageDataPrefix.songListSetting
 const leaderboardSettingKey = storageDataPrefix.leaderboardSetting
 const listPrevSelectIdKey = storageDataPrefix.listPrevSelectId
-const syncAuthKeyPrefix = storageDataPrefix.syncAuthKey
-const syncHostPrefix = storageDataPrefix.syncHost
-const syncHostHistoryPrefix = storageDataPrefix.syncHostHistory
 const listPrefix = storageDataPrefix.list
 const dislikeListPrefix = storageDataPrefix.dislikeList
 const userApiPrefix = storageDataPrefix.userApi
@@ -441,59 +438,6 @@ export const getSelectedManagedFolder = async() => {
   if (selectedManagedFolder != uri) selectedManagedFolder = uri
   return selectedManagedFolder
 }
-
-export const getSyncAuthKey = async(serverId: string) => {
-  const keys = await getData<Record<string, LX.Sync.KeyInfo>>(syncAuthKeyPrefix)
-  if (!keys) return null
-  return keys[serverId] ?? null
-}
-export const setSyncAuthKey = async(serverId: string, info: LX.Sync.KeyInfo) => {
-  let keys = await getData<Record<string, LX.Sync.KeyInfo>>(syncAuthKeyPrefix) ?? {}
-  keys[serverId] = info
-  await saveData(syncAuthKeyPrefix, keys)
-}
-
-let syncHostInfo: string
-export const getSyncHost = async() => {
-  if (syncHostInfo === undefined) {
-    // eslint-disable-next-line require-atomic-updates
-    syncHostInfo = await getData(syncHostPrefix) ?? ''
-
-    // 清空1.0.0之前版本的同步主机
-    if (typeof syncHostInfo == 'object') syncHostInfo = ''
-  }
-  return syncHostInfo
-}
-export const setSyncHost = async(host: string) => {
-  // let hostInfo = await getData(syncHostPrefix) || {}
-  // hostInfo.host = host
-  // hostInfo.port = port
-  syncHostInfo = host
-  await saveData(syncHostPrefix, syncHostInfo)
-}
-let syncHostHistory: string[]
-export const getSyncHostHistory = async() => {
-  if (syncHostHistory === undefined) {
-    // eslint-disable-next-line require-atomic-updates
-    syncHostHistory = await getData(syncHostHistoryPrefix) ?? []
-
-    // 清空1.0.0之前版本的同步历史
-    if (syncHostHistory.length && typeof syncHostHistory[0] !== 'string') syncHostHistory = []
-  }
-  return syncHostHistory
-}
-export const addSyncHostHistory = async(host: string) => {
-  let syncHostHistory = await getSyncHostHistory()
-  if (syncHostHistory.some(h => h == host)) return
-  syncHostHistory.unshift(host)
-  if (syncHostHistory.length > 20) syncHostHistory = syncHostHistory.slice(0, 20) // 最多存储20个
-  await saveData(syncHostHistoryPrefix, syncHostHistory)
-}
-export const removeSyncHostHistory = async(index: number) => {
-  syncHostHistory.splice(index, 1)
-  await saveData(syncHostHistoryPrefix, syncHostHistory)
-}
-
 let userApis: LX.UserApi.UserApiInfo[] = []
 export const getUserApiList = async(): Promise<LX.UserApi.UserApiInfo[]> => {
   userApis = await getData<LX.UserApi.UserApiInfo[]>(userApiPrefix) ?? []
@@ -592,12 +536,12 @@ export const addUserApis = async(scripts: string[]): Promise<Array<LX.UserApi.Us
 }
 export const removeUserApi = async(ids: string[]) => {
   if (!userApis) return []
+  const idSet = new Set(ids)
   const _ids: string[] = []
   for (let index = userApis.length - 1; index > -1; index--) {
-    if (ids.includes(userApis[index].id)) {
+    if (idSet.has(userApis[index].id)) {
       _ids.push(`${userApiPrefix}${userApis[index].id}`)
       userApis.splice(index, 1)
-      ids.splice(index, 1)
     }
   }
   await saveData(userApiPrefix, userApis)

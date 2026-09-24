@@ -6,6 +6,22 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.2](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.1...v1.9.2) - Unreleased
+
+### 修改
+
+- 备份与恢复：支持按需勾选备份「播放列表（含默认/喜欢/自建列表）、本地音乐列表、音源、设置数据」，导入/导出按钮改为「导入数据」「导出数据」
+- 移除数据同步功能（设置入口、同步插件、同步 Store、同步模式弹窗及相关依赖），保留历史同步数据（无损）
+
+### 新增
+
+- 播放失败自动换源：默认开启，播放中两分钟未开始播放且当前音源未取得有效播放地址时，自动切换其它音源重试，单曲最多尝试 2 次
+- 备份新增 WebDAV 支持：填写服务器地址/账号/密码即可导出数据到 WebDAV（自动创建 LX Backup 文件夹）或从 WebDAV 导入数据
+
+### 优化
+
+- 播放列表备份仅勾选「播放列表」时仍导出 playList_v2 格式，兼容桌面版导入
+
 ## [1.9.1](https://github.com/lyswhut/lx-music-mobile/compare/v1.8.2...v1.9.1) - 2026-09-24
 
 ### 修复

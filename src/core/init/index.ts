@@ -5,7 +5,6 @@ import initI18n from './i18n'
 import initUserApi from './userApi'
 import initPlayer from './player'
 import dataInit from './dataInit'
-import initSync from './sync'
 import initCommonState from './common'
 import { initDeeplink } from './deeplink'
 import { setApiSource } from '@/core/apiSource'
@@ -37,7 +36,7 @@ const handlePushedHomeScreen = async() => {
  * 音源初始化 + apiSource 校验/设置（自 init 主链移出后独立执行）。
  * 依赖核实结论：
  * - initUserApi 仅与「apiSource 校验 / setApiSource」存在依赖，二者保持在其 resolve 后同步执行（时序与串行一致）；
- * - initPlayer/dataInit/initCommonState/initDownloadData/initLocalMusic/initSync 均不依赖音源；
+ * - initPlayer/dataInit/initCommonState/initDownloadData/initLocalMusic 均不依赖音源；
  * - 搜索/取歌词/取图等音乐功能前均有 global.lx.apiInitPromise 等待音源就绪，首屏提前显示后操作有兜底。
  */
 const initUserApiAndApiSource = async(setting: LX.AppSetting) => {
@@ -103,9 +102,6 @@ export default async() => {
 
   await initLocalMusic()
   bootLog('Local music inited.')
-
-  void initSync(setting)
-  bootLog('Sync inited.')
 
   // syncSetting()
 

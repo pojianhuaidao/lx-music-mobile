@@ -197,6 +197,11 @@ declare global {
       'player.isShowBluetoothLyric': boolean
 
       /**
+       * 播放失败自动换源
+       */
+      'player.autoSwitchSource': boolean
+
+      /**
        * 播放详情页-是否缩放当前播放的歌词行
        */
       // 'playDetail.isZoomActiveLrc': boolean
@@ -380,11 +385,6 @@ declare global {
        * 嵌入罗马音
        */
       'download.embedLyricRoma': boolean
-
-      /**
-       * 是否启用同步
-       */
-      'sync.enable': boolean
     }
   }
 }

@@ -30,7 +30,6 @@ interface GlobalData {
   restorePlayInfo: LX.Player.SavedPlayInfo | null
   isScreenKeepAwake: boolean
   isPlayedStop: boolean
-  isEnableSyncLog: boolean
   isEnableUserApiLog: boolean
   playerTrackId: string
 
@@ -56,9 +55,7 @@ interface GlobalData {
   //   screenPxH: number
   // }
 
-  // syncKeyInfo: LX.Sync.KeyInfo
 }
-
 
 declare global {
   var isDev: boolean
