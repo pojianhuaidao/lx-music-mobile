@@ -339,6 +339,8 @@
   "setting_basic_startup_push_play_detail_screen": "啟動後自動開啟播放詳情頁",
   "setting_basic_theme": "主題顏色",
   "setting_basic_theme_auto_theme": "跟隨系統亮、暗模式切換主題",
+  "setting_basic_theme_light": "亮色主題",
+  "setting_basic_theme_dark": "暗色主題",
   "setting_basic_theme_dynamic_bg": "使用動態背景",
   "setting_basic_theme_font_shadow": "啟用字體陰影",
   "setting_basic_theme_hide_bg_dark": "隱藏黑色主題背景",

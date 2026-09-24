@@ -339,6 +339,8 @@
   "setting_basic_startup_push_play_detail_screen": "Open the playback detail page on startup",
   "setting_basic_theme": "Theme",
   "setting_basic_theme_auto_theme": "Follow system light & dark modes to switch themes",
+  "setting_basic_theme_light": "Light theme",
+  "setting_basic_theme_dark": "Dark theme",
   "setting_basic_theme_dynamic_bg": "Use dynamic backgrounds",
   "setting_basic_theme_font_shadow": "Enable font shadow",
   "setting_basic_theme_hide_bg_dark": "Hide the background of the black theme",

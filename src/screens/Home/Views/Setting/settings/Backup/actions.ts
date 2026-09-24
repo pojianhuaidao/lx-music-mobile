@@ -9,6 +9,8 @@ import settingState from '@/store/setting/state'
 import { saveData } from '@/plugins/storage'
 import { getLocalMusicList, getUserApiList, getUserApiScript, saveLocalMusicList } from '@/utils/data'
 import { importUserApi, removeUserApi } from '@/core/userApi'
+import { getTheme } from '@/theme/themes'
+import { applyTheme } from '@/core/theme'
 
 export interface BackupSelectOptions {
   playList: boolean
@@ -187,16 +189,25 @@ const replaceAllListData = async(lists: Array<LX.List.MyDefaultListInfoFull | LX
  * 完全替换设置：以默认设置为基底、备份设置整体覆盖（本地多余键不残留），
  * 写入内存（settingState.setting）并持久化（@setting_v1），
  * 通过 configUpdated 全键事件刷新依赖设置的模块
+ *
+ * 主题偏好例外：备份数据不覆盖用户当前主题（common.isAutoTheme 与 theme.* 系列键），
+ * 避免恢复备份后"跟随系统"开关被旧备份值静默关闭/主题被固化；
+ * 其余设置仍按完全替换语义覆盖
  */
 const restoreSetting = async(settingData: Partial<LX.AppSetting>) => {
+  const backupSetting = Object.fromEntries(
+    Object.entries(settingData).filter(([key]) => key !== 'common.isAutoTheme' && !key.startsWith('theme.')),
+  ) as Partial<LX.AppSetting>
   const merged = {
     ...JSON.parse(JSON.stringify(defaultSetting)),
-    ...JSON.parse(JSON.stringify(settingData)),
+    ...JSON.parse(JSON.stringify(backupSetting)),
     version: defaultSetting.version,
   } as LX.AppSetting
   settingState.setting = merged
   await saveData(storageDataPrefix.setting, merged)
-  global.state_event.configUpdated(Object.keys(settingData) as Array<keyof LX.AppSetting>, settingData)
+  global.state_event.configUpdated(Object.keys(backupSetting) as Array<keyof LX.AppSetting>, backupSetting)
+  // 恢复完成后主动重新应用主题，确保跟随系统/当前主题即时刷新
+  void getTheme().then(applyTheme)
 }
 
 /**

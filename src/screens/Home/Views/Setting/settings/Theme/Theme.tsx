@@ -1,34 +1,39 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { View, TouchableOpacity, type ImageSourcePropType } from 'react-native'
-import { setTheme } from '@/core/theme'
+import { setTheme, applyTheme } from '@/core/theme'
+import { updateSetting } from '@/core/common'
 import { useI18n } from '@/lang'
 import { useSettingValue } from '@/store/setting/hook'
 import { useTheme } from '@/store/theme/hook'
+import themeState from '@/store/theme/state'
 
 import SubTitle from '../../components/SubTitle'
-import { BG_IMAGES, getAllThemes, type LocalTheme } from '@/theme/themes'
+import { BG_IMAGES, getAllThemes, getTheme, type LocalTheme } from '@/theme/themes'
 import Text from '@/components/common/Text'
 import { createStyle } from '@/utils/tools'
 import { scaleSizeH } from '@/utils/pixelRatio'
 import { Icon } from '@/components/common/Icon'
 import ImageBackground from '@/components/common/ImageBackground'
 
-const useActive = (id: string) => {
-  const activeThemeId = useSettingValue('theme.id')
+type ThemeKey = 'theme.id' | 'theme.lightId' | 'theme.darkId'
+
+const useActive = (activeKey: ThemeKey, id: string) => {
+  const activeThemeId = useSettingValue(activeKey)
   const isActive = useMemo(() => activeThemeId == id, [activeThemeId, id])
   return isActive
 }
 
-const ThemeItem = ({ id, name, color, image, setTheme, showAll }: {
+const ThemeItem = ({ id, name, color, image, setTheme, showAll, activeKey }: {
   id: string
   name: string
   color: string
   showAll: boolean
+  activeKey: ThemeKey
   image?: ImageSourcePropType
   setTheme: (id: string) => void
 }) => {
   const theme = useTheme()
-  const isActive = useActive(id)
+  const isActive = useActive(activeKey, id)
 
   return (
     showAll || isActive ? (
@@ -73,22 +78,18 @@ interface ThemeInfo {
   dataPath: string
 }
 const initInfo: ThemeInfo = { themes: [], userThemes: [], dataPath: '' }
-export default memo(() => {
-  const [showAll, setShowAll] = useState(false)
+
+const ThemeGrid = ({ title, activeKey, onSelect, themeInfo, showAll, setShowAll }: {
+  title: string
+  activeKey: ThemeKey
+  onSelect: (id: string) => void
+  themeInfo: ThemeInfo
+  showAll: boolean
+  setShowAll: (showAll: boolean) => void
+}) => {
   const t = useI18n()
-  const [themeInfo, setThemeInfo] = useState(initInfo)
-  const setThemeId = useCallback((id: string) => {
-    requestAnimationFrame(() => {
-      setTheme(id)
-    })
-  }, [])
-
-  useEffect(() => {
-    void getAllThemes().then(setThemeInfo)
-  }, [])
-
   return (
-    <SubTitle title={t('setting_basic_theme')}>
+    <SubTitle title={title}>
       <View style={styles.list}>
         {
           themeInfo.themes.map(({ id, config }) => {
@@ -99,7 +100,8 @@ export default memo(() => {
               showAll={showAll}
               id={id}
               name={t(`theme_${id}`)}
-              setTheme={setThemeId} />
+              setTheme={onSelect}
+              activeKey={activeKey} />
           })
         }
         {
@@ -111,12 +113,79 @@ export default memo(() => {
               showAll={showAll}
               id={id}
               name={name}
-              setTheme={setThemeId} />
+              setTheme={onSelect}
+              activeKey={activeKey} />
           })
         }
         <MoreBtn showAll={showAll} setShowAll={setShowAll} />
       </View>
     </SubTitle>
+  )
+}
+
+export default memo(() => {
+  const [showAll, setShowAll] = useState(false)
+  const [showAllDark, setShowAllDark] = useState(false)
+  const t = useI18n()
+  const [themeInfo, setThemeInfo] = useState(initInfo)
+  const isAutoTheme = useSettingValue('common.isAutoTheme')
+  const setThemeId = useCallback((id: string) => {
+    requestAnimationFrame(() => {
+      setTheme(id)
+    })
+  }, [])
+  const setLightThemeId = useCallback((id: string) => {
+    requestAnimationFrame(() => {
+      updateSetting({ 'theme.lightId': id })
+      void getTheme().then(theme => {
+        if (theme.id == themeState.theme.id) return
+        applyTheme(theme)
+      })
+    })
+  }, [])
+  const setDarkThemeId = useCallback((id: string) => {
+    requestAnimationFrame(() => {
+      updateSetting({ 'theme.darkId': id })
+      void getTheme().then(theme => {
+        if (theme.id == themeState.theme.id) return
+        applyTheme(theme)
+      })
+    })
+  }, [])
+
+  useEffect(() => {
+    void getAllThemes().then(setThemeInfo)
+  }, [])
+
+  return (
+    isAutoTheme
+      ? (
+          <>
+            <ThemeGrid
+              title={t('setting_basic_theme_light')}
+              activeKey="theme.lightId"
+              onSelect={setLightThemeId}
+              themeInfo={themeInfo}
+              showAll={showAll}
+              setShowAll={setShowAll} />
+            <ThemeGrid
+              title={t('setting_basic_theme_dark')}
+              activeKey="theme.darkId"
+              onSelect={setDarkThemeId}
+              themeInfo={themeInfo}
+              showAll={showAllDark}
+              setShowAll={setShowAllDark} />
+          </>
+        )
+      : (
+          <ThemeGrid
+            title={t('setting_basic_theme')}
+            activeKey="theme.id"
+            onSelect={setThemeId}
+            themeInfo={themeInfo}
+            showAll={showAll}
+            setShowAll={setShowAll} />
+        )
   )
 })
 
