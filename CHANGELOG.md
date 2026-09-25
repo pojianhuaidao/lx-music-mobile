@@ -6,12 +6,19 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
-## [1.9.2](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.1...v1.9.2) - Unreleased
+## [1.9.2](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.1...v1.9.2) - 2026-09-25
+
+### 修复
+
+- 修复备份恢复时主题偏好被旧备份值静默改写的问题，恢复完成后自动重新应用主题（「跟随系统」开关不再被覆盖）
+- 音源初始化恢复串行等待完成后再进入主界面，解决「初始化失败 / 一直获取URL」问题
+- 远程默认音源全部加载失败时回退使用现有音源列表首个，避免默认音源丢失
 
 ### 修改
 
 - 备份与恢复：支持按需勾选备份「播放列表（含默认/喜欢/自建列表）、本地音乐列表、音源、设置数据」，导入/导出按钮改为「导入数据」「导出数据」
 - 移除数据同步功能（设置入口、同步插件、同步 Store、同步模式弹窗及相关依赖），保留历史同步数据（无损）
+- 移除内置音源「独家音源V4」「ikun音源」（资产文件 lx.js / ikun.js 已删除，seedBuiltin 不再注入），并在 REMOVED_BUILTIN_USER_APIS 登记 id / name / 脚本 hash，旧版本升级设备上的残留注入项按三判定自动清理
 
 ### 新增
 
@@ -25,6 +32,7 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 ### 其他
 
 - 清理废代码：移除自动更新链路（core/version、VersionModal 及其注册、store/version、utils/version.js 的 downloadNewVersion/updateApp、ignoreVersion 相关存储键与事件）及 16 个无引用导出（setDesktopLyricPosition、scanFolder、updateUserListPosition、clearListMusics、getSortList、parseUrlParams、scaleSizeHR、onWindowSizeChange、handleAddToList、useSourceNames、useDownloadConfig、useRunningDownloadsCount、onModalDismissed、useNavigationCommandComplete、useNavigationComponentDidDisappear、useAsyncStorage）与 2 个无引用文件（cryptoTest.ts、ScaledImage.tsx），不涉及功能变更
+- 更新源改为本 fork（pojianhuaidao/lx-music-mobile），不再查询原版 lyswhut 仓库的 npm / gitee / 第三方镜像
 
 ## [1.9.1](https://github.com/lyswhut/lx-music-mobile/compare/v1.8.2...v1.9.1) - 2026-09-24
 

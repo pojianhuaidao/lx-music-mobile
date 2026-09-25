@@ -10,11 +10,9 @@ const ASSET_DIR = 'lx-builtin-user-api'
 
 const BUILTIN_USER_APIS = [
   { id: 'qdy', file: 'qdy.js', name: '全豆要[聚合音源]' },
-  { id: 'ikun', file: 'ikun.js', name: 'ikun音源' },
   { id: 'sixyin', file: 'sixyin.js', name: '六音音源' },
   { id: 'flower', file: 'flower.js', name: '野花🌷' },
   { id: 'grass', file: 'grass.js', name: '野草🌾' },
-  { id: 'lx', file: 'lx.js', name: '[独家音源]' },
   { id: 'huibq', file: 'huibq.js', name: 'Huibq_lxmusic源' },
 ] as const
 
@@ -24,9 +22,13 @@ const BUILTIN_USER_APIS = [
  * 无法按内置固定 id 直接匹配），故启动时按「id 精确匹配」或「脚本内容 hash 匹配」或
  * 「name 归一化匹配（normalizeName）」清理残留：name 归一化可覆盖 hash 不同的网络默认源导入版
  * （如 juhe 网络版脚本内容与内置资产不一致），保证同类残留被彻底清除。
+ * 2026-09-25 移除 lx（[独家音源]，即独家音源V4）与 ikun（ikun音源）：资产文件已删，
+ * 旧版升级设备上的残留注入项（含用户已手动添加的同名网络版）按上述三判定一并清理。
  */
 const REMOVED_BUILTIN_USER_APIS = [
   { id: 'juhe', name: '聚合API接口 (CF)', hash: '6f788e66' },
+  { id: 'ikun', name: 'ikun音源', hash: '45c5e159' },
+  { id: 'lx', name: '[独家音源]', hash: 'b17362ad' },
 ] as const
 
 /**

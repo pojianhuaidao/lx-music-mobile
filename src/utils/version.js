@@ -1,15 +1,11 @@
 import { httpGet } from '@/utils/request'
-import { author, name } from '../../package.json'
 
+// 更新源指向本 fork（pojianhuaidao/lx-music-mobile），不再查询原版 lyswhut 仓库
 const address = [
-  [`https://raw.githubusercontent.com/${author.name}/${name}/master/publish/version.json`, 'direct'],
-  ['https://registry.npmjs.org/lx-music-mobile-version-info/latest', 'npm'],
-  [`https://cdn.jsdelivr.net/gh/${author.name}/${name}/publish/version.json`, 'direct'],
-  [`https://fastly.jsdelivr.net/gh/${author.name}/${name}/publish/version.json`, 'direct'],
-  [`https://gcore.jsdelivr.net/gh/${author.name}/${name}/publish/version.json`, 'direct'],
-  ['https://registry.npmmirror.com/lx-music-mobile-version-info/latest', 'npm'],
-  ['https://gitee.com/lyswhut/lx-music-mobile-versions/raw/master/version.json', 'direct'],
-  ['http://cdn.stsky.cn/lx-music/mobile/version.json', 'direct'],
+  ['https://raw.githubusercontent.com/pojianhuaidao/lx-music-mobile/master/publish/version.json', 'direct'],
+  ['https://cdn.jsdelivr.net/gh/pojianhuaidao/lx-music-mobile/publish/version.json', 'direct'],
+  ['https://fastly.jsdelivr.net/gh/pojianhuaidao/lx-music-mobile/publish/version.json', 'direct'],
+  ['https://gcore.jsdelivr.net/gh/pojianhuaidao/lx-music-mobile/publish/version.json', 'direct'],
 ]
 
 
