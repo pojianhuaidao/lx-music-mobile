@@ -77,6 +77,11 @@ declare global {
       'common.alwaysKeepStatusbarHeight': boolean
 
       /**
+       * 图标主题
+       */
+      'common.iconTheme': 'default' | 'tabler' | 'iconoir'
+
+      /**
        * 主题id
        */
       'theme.id': string

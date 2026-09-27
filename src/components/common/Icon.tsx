@@ -1,8 +1,11 @@
 import { createIconSetFromIcoMoon } from 'react-native-vector-icons'
 import icoMoonConfig from '@/resources/fonts/selection.json'
+import tablerConfig from '@/resources/fonts/selection-tabler.json'
+import iconoirConfig from '@/resources/fonts/selection-iconoir.json'
 import { scaleSizeW } from '@/utils/pixelRatio'
 import { memo, type ComponentProps } from 'react'
 import { useTextShadow, useTheme } from '@/store/theme/hook'
+import { useSettingValue } from '@/store/setting/hook'
 import { StyleSheet, type StyleProp, type TextStyle } from 'react-native'
 
 // import IconAntDesign from 'react-native-vector-icons/AntDesign'
@@ -22,6 +25,14 @@ import { StyleSheet, type StyleProp, type TextStyle } from 'react-native'
 
 
 const IcoMoon = createIconSetFromIcoMoon(icoMoonConfig)
+const IcoMoonTabler = createIconSetFromIcoMoon(tablerConfig)
+const IcoMoonIconoir = createIconSetFromIcoMoon(iconoirConfig)
+
+const ICON_SETS = {
+  default: IcoMoon,
+  tabler: IcoMoonTabler,
+  iconoir: IcoMoonIconoir,
+} as const
 
 
 // https://oblador.github.io/react-native-vector-icons/
@@ -36,13 +47,15 @@ interface IconProps extends Omit<ComponentProps<IconType>, 'style'> {
 export const Icon = memo(({ size = 15, rawSize, color, style, ...props }: IconProps) => {
   const theme = useTheme()
   const textShadow = useTextShadow()
+  const iconTheme = useSettingValue('common.iconTheme')
+  const IconSet = ICON_SETS[iconTheme]
   const newStyle = textShadow ? StyleSheet.compose({
     textShadowColor: theme['c-primary-dark-300-alpha-800'],
     textShadowOffset: { width: 0.2, height: 0.2 },
     textShadowRadius: 2,
   }, style) : style
   return (
-    <IcoMoon
+    <IconSet
       size={rawSize ?? scaleSizeW(size)}
       color={color ?? theme['c-font']}
       // @ts-expect-error
