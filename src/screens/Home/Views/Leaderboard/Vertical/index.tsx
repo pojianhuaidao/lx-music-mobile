@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { View } from 'react-native'
-import { createStyle } from '@/utils/tools'
+import { createStyle, toast } from '@/utils/tools'
 
 import MusicList, { type MusicListType } from '../MusicList'
 import { getLeaderboardSetting, saveLeaderboardSetting } from '@/utils/data'
@@ -14,6 +14,7 @@ import BoardsList, { type BoardsListType, type BoardsListProps } from '../Boards
 import type { InitState as CommonState } from '@/store/common/state'
 import settingState from '@/store/setting/state'
 import { getBoardsList } from '@/core/leaderboard'
+import { playRecommendList } from '@/core/recommend'
 import { COMPONENT_IDS } from '@/config/constant'
 import { handleCollect, handlePlay } from '../listAction'
 import boardState from '@/store/leaderboard/state'
@@ -59,6 +60,17 @@ export default () => {
     boundInfo.current.id = id
     void handleCollect(id, name, boundInfo.current.source)
   }
+  const onRecommend: BoardsListProps['onRecommend'] = () => {
+    requestAnimationFrame(() => {
+      drawer.current?.closeDrawer()
+    })
+    void playRecommendList().then(() => {
+      toast(global.i18n.t('recommend_play_success'))
+    }).catch(err => {
+      console.warn('[recommend] 播放推荐失败', err)
+      toast(String(err?.message ?? global.i18n.t('recommend_play_failed')))
+    })
+  }
   const onShowBound = () => {
     requestAnimationFrame(() => {
       drawer.current?.openDrawer()
@@ -86,6 +98,7 @@ export default () => {
         onBoundChange={onBoundChange}
         onCollect={onCollect}
         onPlay={onPlay}
+        onRecommend={onRecommend}
       />
     )
   }

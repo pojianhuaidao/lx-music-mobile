@@ -7,11 +7,12 @@ import SourceSelector, {
 } from '@/components/SourceSelector'
 import BoardsList, { type BoardsListType, type BoardsListProps } from '../BoardsList'
 import { BorderWidths } from '@/theme'
-import { createStyle } from '@/utils/tools'
+import { createStyle, toast } from '@/utils/tools'
 import { handleCollect, handlePlay } from '../listAction'
 import boardState, { type InitState } from '@/store/leaderboard/state'
 import { useTheme } from '@/store/theme/hook'
 import { getBoardsList } from '@/core/leaderboard'
+import { playRecommendList } from '@/core/recommend'
 
 type Sources = Readonly<InitState['sources']>
 // type SourceSelectorProps = _SourceSelectorProps<Sources>
@@ -65,6 +66,14 @@ export default forwardRef<LeftBarType, LeftBarProps>(({ onChangeList }, ref) => 
     boundInfo.current.id = id
     void handleCollect(id, name, boundInfo.current.source)
   }
+  const onRecommend: BoardsListProps['onRecommend'] = () => {
+    void playRecommendList().then(() => {
+      toast(global.i18n.t('recommend_play_success'))
+    }).catch(err => {
+      console.warn('[recommend] 播放推荐失败', err)
+      toast(String(err?.message ?? global.i18n.t('recommend_play_failed')))
+    })
+  }
 
   return (
     <View style={{ ...styles.container, borderRightColor: theme['c-list-header-border-bottom'] }}>
@@ -76,6 +85,7 @@ export default forwardRef<LeftBarType, LeftBarProps>(({ onChangeList }, ref) => 
         onBoundChange={onBoundChange}
         onPlay={onPlay}
         onCollect={onCollect}
+        onRecommend={onRecommend}
       />
     </View>
   )

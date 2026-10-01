@@ -22,8 +22,8 @@ export default forwardRef<FolderManagerModalType, {}>((_, ref) => {
   const [visible, setVisible] = useState(false)
 
   useImperativeHandle(ref, () => ({
-    show: () => setVisible(true),
-    hide: () => setVisible(false),
+    show: () => { setVisible(true) },
+    hide: () => { setVisible(false) },
   }))
 
   const handleClose = useCallback(() => {
@@ -48,7 +48,7 @@ export default forwardRef<FolderManagerModalType, {}>((_, ref) => {
 
   const renderItem = useCallback(({ item }: { item: FolderInfo }) => {
     return (
-      <View style={[styles.folderItem, { borderBottomColor: theme['c-border-light'] }]}>
+      <View style={[styles.folderItem, { borderBottomColor: theme['c-border-background'] }]}>
         <View style={styles.folderInfo}>
           <Icon name="add_folder" size={20} color={theme['c-font-label']} />
           <View style={styles.folderText}>
@@ -56,7 +56,7 @@ export default forwardRef<FolderManagerModalType, {}>((_, ref) => {
             <Text numberOfLines={1} size={11} color={theme['c-font-label']}>{item.path}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemoveFolder(item)}>
+        <TouchableOpacity style={styles.removeBtn} onPress={() => { void handleRemoveFolder(item) }}>
           <Icon name="remove" size={18} color={theme['c-font-label']} />
         </TouchableOpacity>
       </View>
