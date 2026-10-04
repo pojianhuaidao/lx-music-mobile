@@ -17,6 +17,7 @@ import { initDownloadData } from '@/core/download'
 import { downloadAction } from '@/store/download'
 import { externalStorageDirectoryPath } from '@/utils/fs'
 import { initLocalMusic } from './local'
+import { initVoice } from '@/core/voice'
 
 let isFirstPush = true
 const handlePushedHomeScreen = async() => {
@@ -80,6 +81,10 @@ export default async() => {
   bootLog('Data inited.')
   await initCommonState(setting)
   bootLog('Common State inited.')
+
+  // 语音搜歌：异步初始化（需 RECORD_AUDIO 权限，不阻塞启动主链）
+  void initVoice()
+  bootLog('Voice inited.')
 
   // 初始化下载模块
   await initDownloadData()

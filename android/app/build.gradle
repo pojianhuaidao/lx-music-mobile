@@ -194,6 +194,11 @@ dependencies {
     // implementation "androidx.javascriptengine:javascriptengine:1.0.0-alpha07"
     // implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation 'wang.harlon.quickjs:wrapper-android:2.4.0'
+    // sherpa-onnx 离线语音识别（KWS + ASR，模型内置 assets）
+    // 直接依赖 Android AAR 子模块，并排除纯 JVM 包避免类重复（Duplicate class）
+    implementation('com.github.k2-fsa.sherpa-onnx:sherpa-onnx:v1.13.8') {
+        exclude group: 'com.github.k2-fsa.sherpa-onnx', module: 'sherpa-onnx-jvm'
+    }
 
   if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

@@ -1,3 +1,14 @@
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 67425aee6b41b6be2f991b4754092804_6a1235f6bf5311f18019525400248c00
+    ReservedCode1: ilQBKPdSyj38ot80lWTM5k4mnwnRFTLNvJdmP9B8oDtcmHcJANo0wSsa4CZ1H+t1A7WvdGHgwiB63Qvy1nE3GAGC7XX7j/ag3UcviFEjGusKEdHA/aJJhNniaTLocLTlZfMeNUY5mm+7BQ+nn/zMDsvEF2ZKctKyiGv9wOCU9Czx34u4gPSlMAhR8yA=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 67425aee6b41b6be2f991b4754092804_6a1235f6bf5311f18019525400248c00
+    ReservedCode2: ilQBKPdSyj38ot80lWTM5k4mnwnRFTLNvJdmP9B8oDtcmHcJANo0wSsa4CZ1H+t1A7WvdGHgwiB63Qvy1nE3GAGC7XX7j/ag3UcviFEjGusKEdHA/aJJhNniaTLocLTlZfMeNUY5mm+7BQ+nn/zMDsvEF2ZKctKyiGv9wOCU9Czx34u4gPSlMAhR8yA=
+---
+
 # lx-music-mobile change log
 
 All notable changes to this project will be documented in this file.
@@ -5,6 +16,16 @@ All notable changes to this project will be documented in this file.
 Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
+
+
+## [1.9.3](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.2...v1.9.3) - 2026-10-04
+
+### 新增
+
+- 车机语音搜歌播放：基于 sherpa-onnx 的离线语音识别（KWS 唤醒词 + 流式 ASR + VAD），喊「你好小马」唤醒后直接说歌名即可搜索播放
+- 语音设置项：语音搜歌开关、唤醒词、识别灵敏度、语速设置（设置页新增 Voice 面板）
+- 语音模型内置 assets（ASR + KWS 中文模型，离线可用、不依赖网络）
+- 语音识别前台常驻服务：不占用播放 AudioFocus，START_STICKY 自动恢复
 
 ## [1.9.2](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.1...v1.9.2) - 2026-09-25
 
@@ -1114,3 +1135,4 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 ## [0.1.1] - 2021-05-15
 
 - v0.1.1版本发布 🎊 🎉
+*（内容由AI生成，仅供参考）*

@@ -9,6 +9,7 @@ import List from '../settings/List'
 import Download from '../settings/Download'
 import Backup from '../settings/Backup'
 import Other from '../settings/Other'
+import Voice from '../settings/Voice'
 import { createStyle } from '@/utils/tools'
 import { SETTING_SCREENS, type SettingScreenIds } from '../Main'
 
@@ -35,6 +36,7 @@ const ListItem = memo(({
     case 'list': return <List />
     case 'download': return <Download />
     case 'backup': return <Backup />
+    case 'voice': return <Voice />
     case 'other': return <Other />
     case 'basic': return <Basic />
   }
