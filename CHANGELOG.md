@@ -18,6 +18,13 @@ Commit convention is based on [Conventional Commits](http://conventionalcommits.
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 
+## [1.9.4](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.3...v1.9.4) - 2026-10-04
+
+### 修复
+
+- 修复系统强制小窗/媒体小窗下点击桌面图标需多次才能打开主界面的问题：MainActivity 重写 onNewIntent 与 onMultiWindowModeChanged，在桌面图标恢复/退出小窗时通过 ReactContext.emitDeviceEvent 向 JS 层发送 lxMusicRefresh 事件，JS 层收到后调用 Navigation.updateProps 强制刷新 RN 根视图，一次点击即可恢复主界面
+- 消除启动闪屏：AppTheme 增加 android:windowBackground 品牌色背景，RN 根视图挂载前不再显示空白窗口
+
 ## [1.9.3](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.2...v1.9.3) - 2026-10-04
 
 ### 新增

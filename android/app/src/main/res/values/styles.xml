@@ -3,6 +3,8 @@
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
+        <!-- 启动窗口背景使用品牌色，消除 RN 根视图挂载前的空白闪屏（日/夜通用） -->
+        <item name="android:windowBackground">#039893</item>
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
     </style>
 

@@ -6,10 +6,12 @@ import { getFontSize } from '@/utils/data'
 import { exitApp } from './utils/nativeModules/utils'
 import { windowSizeTools } from './utils/windowSizeTools'
 import { listenLaunchEvent } from './navigation/regLaunchedEvent'
+import { listenRefreshEvent } from './navigation/refreshOnForeground'
 import { tipDialog } from './utils/tools'
 
 console.log('starting app...')
 listenLaunchEvent()
+listenRefreshEvent()
 
 void Promise.all([getFontSize(), windowSizeTools.init()]).then(async([fontSize]) => {
   global.lx.fontSize = fontSize
