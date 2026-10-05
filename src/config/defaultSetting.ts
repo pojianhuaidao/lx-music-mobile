@@ -16,12 +16,6 @@ const defaultSetting: LX.AppSetting = {
   'common.alwaysKeepStatusbarHeight': false,
   'common.iconTheme': 'default',
 
-  'voice.enabled': false,
-  'voice.wakeWord': '你好小马',
-  'voice.sensitivity': 0.7,
-  'voice.autoStopAfterPlay': false,
-  'voice.wakeWordFree': false,
-
   'player.startupAutoPlay': false,
   'player.startupPushPlayDetailScreen': false,
   'player.togglePlayMethod': 'listLoop',

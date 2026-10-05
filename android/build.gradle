@@ -43,7 +43,5 @@ allprojects {
         // 备用官方源
         google()
         mavenCentral()
-        // sherpa-onnx 依赖托管在 JitPack
-        maven { url 'https://jitpack.io' }
     }
 }

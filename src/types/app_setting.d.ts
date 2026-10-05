@@ -390,31 +390,6 @@ declare global {
        * 嵌入罗马音
        */
       'download.embedLyricRoma': boolean
-
-      /**
-       * 是否启用语音搜歌
-       */
-      'voice.enabled': boolean
-
-      /**
-       * 语音唤醒词
-       */
-      'voice.wakeWord': string
-
-      /**
-       * 语音识别灵敏度（0-1，越大越灵敏）
-       */
-      'voice.sensitivity': number
-
-      /**
-       * 播放歌曲后是否自动停止本次语音监听
-       */
-      'voice.autoStopAfterPlay': boolean
-
-      /**
-       * 是否开启免唤醒模式（开启后无需喊唤醒词，直接说"播放 歌名"即可搜歌）
-       */
-      'voice.wakeWordFree': boolean
     }
   }
 }
