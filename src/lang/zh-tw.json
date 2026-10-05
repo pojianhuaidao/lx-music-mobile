@@ -620,6 +620,8 @@
   "setting_voice_wake_word_save_tip": "喚醒詞已儲存",
   "setting_voice_sensitivity": "喚醒靈敏度",
   "setting_voice_auto_stop_after_play": "播放成功後自動回到待機",
+  "setting_voice_wake_word_free": "免喚醒（直接說「播放 歌名」）",
+  "setting_voice_wake_word_free_desc": "開啟後無需喊喚醒詞，直接說「播放 歌名」即可搜歌播放",
   "voice_wake_up": "喚醒成功，請說出歌名",
   "voice_not_command": "未識別到指令，請說「播放 歌名」",
   "voice_not_found": "未找到相關歌曲",

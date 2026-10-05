@@ -20,6 +20,7 @@ const defaultSetting: LX.AppSetting = {
   'voice.wakeWord': '你好小马',
   'voice.sensitivity': 0.7,
   'voice.autoStopAfterPlay': false,
+  'voice.wakeWordFree': false,
 
   'player.startupAutoPlay': false,
   'player.startupPushPlayDetailScreen': false,

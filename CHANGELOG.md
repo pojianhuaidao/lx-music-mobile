@@ -2,6 +2,83 @@
 AIGC:
     Label: "1"
     ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 67425aee6b41b6be2f991b4754092804_72aa20eec00b11f18019525400248c00
+    ReservedCode1: ZS+1VWPVsGsfHCodPz0PQsXc6pyU//kEk75XLnhQU/B4rv47GF+tpEBaoSubnSm8I37S4CPsDxB8xYDZ2DKTRYPpIAK6ThV2oAFOcNJruu5IvAWohba/zLyECl6vJIGCcgD7Tr/btw/CVNYmqDug1b00rZz5B2CEnhRYhd8G/cBhumX6Os59Sv/iMEw=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 67425aee6b41b6be2f991b4754092804_72aa20eec00b11f18019525400248c00
+    ReservedCode2: ZS+1VWPVsGsfHCodPz0PQsXc6pyU//kEk75XLnhQU/B4rv47GF+tpEBaoSubnSm8I37S4CPsDxB8xYDZ2DKTRYPpIAK6ThV2oAFOcNJruu5IvAWohba/zLyECl6vJIGCcgD7Tr/btw/CVNYmqDug1b00rZz5B2CEnhRYhd8G/cBhumX6Os59Sv/iMEw=
+---
+
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 67425aee6b41b6be2f991b4754092804_511dfc5fbfcb11f18019525400248c00
+    ReservedCode1: raL5/l2KL7t4b+pUPNeHYAqnfv8+jNrwBB2gKKHvwnLSG5e74Bmcs/RuUdRj0u2xI0UMajqBLYCDgaJUFEsVmGsF/RTxebdT4vObUDDfBhMU9kK9hdsF7O1ntvbHJtQMCiomeEM4FJHYmaBHxPZ5+79dWQcLixs337FvgtaIKfOzSz7iUfxQQJT3gRs=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 67425aee6b41b6be2f991b4754092804_511dfc5fbfcb11f18019525400248c00
+    ReservedCode2: raL5/l2KL7t4b+pUPNeHYAqnfv8+jNrwBB2gKKHvwnLSG5e74Bmcs/RuUdRj0u2xI0UMajqBLYCDgaJUFEsVmGsF/RTxebdT4vObUDDfBhMU9kK9hdsF7O1ntvbHJtQMCiomeEM4FJHYmaBHxPZ5+79dWQcLixs337FvgtaIKfOzSz7iUfxQQJT3gRs=
+---
+
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 67425aee6b41b6be2f991b4754092804_bc5c1453bfc911f197eb525400393706
+    ReservedCode1: 7rLh0NFidIRkDzD2ZLW24YSwbZR4R/ne8ZN7Tsq67B3/Q76BzNaN4+YiJBsuw/dJi6/5BC1p0/z3JIC2mpSoWAEub1Y6+XyaULahxJyQaSLKWDVrC+6L5le3fWsjEgIEfKOZeo3N7Hs2PoVmxswWIeR6EZIZ7GWA2EBFFaSL42MYKJH9Btzy5dBuVlc=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 67425aee6b41b6be2f991b4754092804_bc5c1453bfc911f197eb525400393706
+    ReservedCode2: 7rLh0NFidIRkDzD2ZLW24YSwbZR4R/ne8ZN7Tsq67B3/Q76BzNaN4+YiJBsuw/dJi6/5BC1p0/z3JIC2mpSoWAEub1Y6+XyaULahxJyQaSLKWDVrC+6L5le3fWsjEgIEfKOZeo3N7Hs2PoVmxswWIeR6EZIZ7GWA2EBFFaSL42MYKJH9Btzy5dBuVlc=
+---
+
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 67425aee6b41b6be2f991b4754092804_822dd965bfbf11f197eb525400393706
+    ReservedCode1: lPlT/5Oe8V/rHrH/UwjFKwpl1p3UQVZdttRqwmwx5tdPTmTQFOGUsB2lLGTqy4hkYZojBE7dJuslu5I0TNuIIaGCnFUBmnvVFq+66IFF4cAfXbHO3J+G0ldBBEMWUDdNydG+9mu/uoLX78WGLR5E+1mmNwq3LEhOy1/yo8VQkF9RHtoBXIdjZYKxJwE=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 67425aee6b41b6be2f991b4754092804_822dd965bfbf11f197eb525400393706
+    ReservedCode2: lPlT/5Oe8V/rHrH/UwjFKwpl1p3UQVZdttRqwmwx5tdPTmTQFOGUsB2lLGTqy4hkYZojBE7dJuslu5I0TNuIIaGCnFUBmnvVFq+66IFF4cAfXbHO3J+G0ldBBEMWUDdNydG+9mu/uoLX78WGLR5E+1mmNwq3LEhOy1/yo8VQkF9RHtoBXIdjZYKxJwE=
+---
+
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 67425aee6b41b6be2f991b4754092804_769d3474bfb811f18019525400248c00
+    ReservedCode1: EgUrGB5uhyyS+aVtKrFKeunfVcbFyxKA/JH6mrjBqCNY4ACK2OlLI0aEifLB+sRnyLwhjU280T8kOPxy5GIEYPvaXxpipBRjzxn8nS2LnK+mYI3tYQL23bCLaaNbogBD7b1IbAPwOulvr+f6B9xAC0fOgyg9rOVVBn/WaiHjKYn4sxmapiqoeNaugVA=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 67425aee6b41b6be2f991b4754092804_769d3474bfb811f18019525400248c00
+    ReservedCode2: EgUrGB5uhyyS+aVtKrFKeunfVcbFyxKA/JH6mrjBqCNY4ACK2OlLI0aEifLB+sRnyLwhjU280T8kOPxy5GIEYPvaXxpipBRjzxn8nS2LnK+mYI3tYQL23bCLaaNbogBD7b1IbAPwOulvr+f6B9xAC0fOgyg9rOVVBn/WaiHjKYn4sxmapiqoeNaugVA=
+---
+
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 67425aee6b41b6be2f991b4754092804_a6c5e29dbfb111f18019525400248c00
+    ReservedCode1: LA+r1FLrXw2oylGFZ3CRFLUm2yQItCJHqrubvu09c77el3+kWQJYO9AtwrXpfmOIVfo3lMqFcfsdOmOOz2O/yNriGlRqFEjzkm3bESW1LDo/Fawpu+NdghHSpFGrTMAWOunANupSuJf8s7797evYtmicnrbNfVWt678ozQGGdr7W5r/P63Kw9UIz+E4=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 67425aee6b41b6be2f991b4754092804_a6c5e29dbfb111f18019525400248c00
+    ReservedCode2: LA+r1FLrXw2oylGFZ3CRFLUm2yQItCJHqrubvu09c77el3+kWQJYO9AtwrXpfmOIVfo3lMqFcfsdOmOOz2O/yNriGlRqFEjzkm3bESW1LDo/Fawpu+NdghHSpFGrTMAWOunANupSuJf8s7797evYtmicnrbNfVWt678ozQGGdr7W5r/P63Kw9UIz+E4=
+---
+
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 67425aee6b41b6be2f991b4754092804_528a5a28bfa211f18019525400248c00
+    ReservedCode1: L7USaWDAmfUvpUHqFT2uHzir3Au28BTpFCvdrotwRJs4LG8wj0i3ki4h2b3G0Ixk6Qj/dLMYydFpKaEFBdPHopbfPBwgjfSaaH3LPnJ2aHzmnkawUw5OQYyBqDdcuvq8Key6085sLm9jAy1JSkgR6I2Z/vJ9lVOcg89dEtRu8urQE9aoF26UiUavomw=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 67425aee6b41b6be2f991b4754092804_528a5a28bfa211f18019525400248c00
+    ReservedCode2: L7USaWDAmfUvpUHqFT2uHzir3Au28BTpFCvdrotwRJs4LG8wj0i3ki4h2b3G0Ixk6Qj/dLMYydFpKaEFBdPHopbfPBwgjfSaaH3LPnJ2aHzmnkawUw5OQYyBqDdcuvq8Key6085sLm9jAy1JSkgR6I2Z/vJ9lVOcg89dEtRu8urQE9aoF26UiUavomw=
+---
+
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
     ProduceID: 67425aee6b41b6be2f991b4754092804_6a1235f6bf5311f18019525400248c00
     ReservedCode1: ilQBKPdSyj38ot80lWTM5k4mnwnRFTLNvJdmP9B8oDtcmHcJANo0wSsa4CZ1H+t1A7WvdGHgwiB63Qvy1nE3GAGC7XX7j/ag3UcviFEjGusKEdHA/aJJhNniaTLocLTlZfMeNUY5mm+7BQ+nn/zMDsvEF2ZKctKyiGv9wOCU9Czx34u4gPSlMAhR8yA=
     ContentPropagator: 001191440300708461136T1XGW3
@@ -17,6 +94,48 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+
+## [1.9.8](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.7...v1.9.8) - 2026-10-04
+
+### 修复
+
+- 修复语音引擎启动即红屏崩溃的问题：`java.lang.NullPointerException ... KeywordSpotter.createStream(String) on a null object reference`（堆栈 `cn.toside.music.mobile.voice.a.d`，崩溃于后台采集线程）。根因是 ACTION_START 在异步 ensureEngineInit() 完成前无条件调用 startListening()，采集线程启动时 spotter 尚未创建（null），createStream 直接 NPE 崩后台线程触发 RN 红屏；现改为引擎就绪后同步启动、未就绪则由 init 成功回调统一启动，消除时序竞争
+- 新增引擎判空防御：startListening 与采集循环中 spotter 为 null 时不再调用 createStream，改为通过 onError 上报具体原因（初始化未完成 / 初始化失败透传 lastInitError / 重建失败透传异常类型与消息），避免后台线程崩溃
+- 新增 createStream 返回空流防御：keyword token 解析失败（OOV）时 createStream 返回 null，现检测后安全退出并上报，避免随后 acceptWaveform 触发二次 NPE
+- 敏感度调整触发 spotter 重建失败时，透传真实异常（类名 + 消息）至 onError，便于定位
+- 修复语音搜歌「未找到相关歌曲」永不播放的问题：`src/core/voice/index.ts` 将 `musicSdk` 各源 `musicSearch.search()` 的返回值直接当数组判断 `length`，而该接口统一返回 `{ list, total, allPage, limit, source }` 对象，导致任何关键词（即使识别正常、搜索成功）都被误判为空列表，恒 toast「未找到相关歌曲」；现改为取 `res.list` 后判空，并同步修正播放 toast 取值（`list[0].name`，兼容 `singer` 为数组或字符串），`setTempList` 也改为传入真实列表数组
+- 修复语音搜歌「搜索失败，请重试」无法定位根因的问题：`playSearchResult` 的 catch 仅弹固定文案，吞掉底层异常（网络/超时/音源接口/重试上限等均不可见）；现透传失败链路到 toast 与日志（音源 source、识别关键词 keyword、底层错误 message，如「接口无法访问了」「请求超时」「无法连接到服务器」「try max num」），便于区分是网络、音源接口还是参数问题
+- 修复「免唤醒模式不起作用」的问题：开启免唤醒开关后语音助手开着直接说「播放 歌名」无反应、不执行搜索。根因在 `SherpaEngine.captureLoop`：采集线程启动时 `mode` 恒初始化为 `MODE_KWS`，而免唤醒运行时切换检测以「capture 线程启动时刻的 `enableWakeWord`」为基准——若免唤醒开关在语音服务启动前已开启（设置页开启后重启 App / 重新开启语音服务，`initVoice → setWakeWordFree(true)` 先于 `engine.init()` 异步完成后的 `startListening()` 到达），`enableWakeWord` 与 `lastEnableWakeWord` 相等，切换分支永不触发，引擎实际停留在唤醒词监听态，直接说命令不会被识别；现于采集循环启动阶段按 `enableWakeWord` 直接初始化 `mode = MODE_ASR_FREE` 并复位 ASR 计时，同时免唤醒切换分支由 `releaseKwsStream()` 改为 `releaseStreams()`，释放可能残留的 `MODE_ASR` 指令流，避免旧命令残余解码状态被复用误提交
+- 修复语音搜歌自定义音源（user_api_*）下 toast「Cannot read property 'picUrl' of undefined」的问题：`playSearchResult` 将 `musicSdk` 搜索结果（各源 `musicSearch.search()` 返回的旧版歌曲结构 `songmid/img/types/_types/typeUrl`，无 `meta` 字段）直接 `setTempList` 写入临时列表并播放，播放信息链路读取 `musicInfo.meta.picUrl` 时因 `meta` 为 `undefined` 抛错。根因与当前音源无关——语音搜索对 `user_api_*`（无 `musicSearch` 属性）本就 fallback 内置 `kw`，kw 搜索返回同样无 `meta` 的旧结构；现与主搜索流程（`src/store/search/music/action.ts`）保持一致，写入临时列表前对每条结果经 `toNewMusicInfo()` 转换为带 `meta` 的新 `MusicInfo` 结构（`meta.songId/picUrl/qualitys/_qualitys/albumId` 齐全），任意音源下语音搜歌均可正常入库播放
+- 修复语音搜歌「能播放但播放同时 RN 红屏 Critical Error」的问题：该红屏为 react-native-exception-handler 的 DefaultErrorScreen（原生未捕获异常界面；release 包 JS 异常已被 `setJSExceptionHandler` 接管弹 Alert，不会显示该屏），即 Android 原生层（含后台线程）未捕获异常触发。定位到根因在 `SherpaEngine` 采集线程与 `stopListening`（语音搜歌播放成功后若开启「播放后自动停止监听」`voice.autoStopAfterPlay`，JS 于 1.5s 后调用）之间的并发竞态：`stopListening` 并发执行 `releaseAudioRecord()` / `releaseStreams()` 释放 AudioRecord 与 sherpa-onnx 流对象的同时，采集线程仍在执行 `acceptWaveform` / `decode` / `startRecording` 等 JNI 调用，释放后调用已释放 native 对象抛 `IllegalStateException`（或字段已置 null 抛 NPE），未捕获异常崩掉后台采集线程并触发 RN 原生错误屏。修复：采集循环内所有 sherpa-onnx / AudioRecord 调用统一 `try-catch(Throwable)` 兜底，`startRecording` 单独保护，异常时记录日志安全退出并将状态复位为待机（保证后续 `startListening` 可重新拉起采集线程）；JS 侧 `stopListening` 桥接调用与播放链路 `getPicPath` 异步回调补 `catch` 兜底，避免 JS 未捕获异常逃逸
+- 修复语音搜歌播放时应用直接闪退（进程级 native 崩溃，非 RN 红屏）的问题：上轮 `try-catch(Throwable)` 只能拦截 Java 异常，拦不住 native SIGSEGV。根因是 `SherpaEngine.stopListening()` / `destroy()` 对采集线程仅 `interrupt()` 不等待退出，随即并发释放 AudioRecord 与 sherpa-onnx stream / spotter / recognizer 等 native 对象；采集线程此刻仍可能在 `audioRecord.read` / `acceptWaveform` / `decode` / `getResult` 等 JNI 调用中，释放后继续触碰已释放的底层对象构成 use-after-free（C++ 野指针访问），直接 SIGSEGV 杀死进程——Java 层无法捕获，表现为「播放时直接闪退」。现实现安全停止协议：`stopListening` / `destroy` 先置停止标志（volatile `listening` / `running`）+ `interrupt()`，再 `join` 等待采集线程完全退出（正常路径每 0.1s 一帧、很快退出，其尾部自行释放资源；若线程阻塞在 AudioRecord.read 的 native 等待、interrupt 无法唤醒，则先 `audioRecord.stop()` 令 read 返回错误退出后再等待），确认线程完全退出后才释放 native 资源，杜绝「释放后仍有线程触碰 native 对象」的竞态窗口
+
+### 新增
+
+- 新增「免唤醒」模式：语音设置中开启后无需喊唤醒词「你好小马」，直接说「播放 歌名」即可模糊搜索播放。原生 `SherpaEngine` 新增 `setEnableWakeWord` 开关，关闭时采集循环跳过 KWS 关键词监听、进入持续 ASR 识别（复用在线 ASR stream 处理：稳定文本判定 + 提交后 reset 继续监听下一句）；`VoiceRecognitionService` / `VoiceModule` 新增 `setWakeWordFree(boolean)` 运行时即时生效；JS 侧新增设置项 `voice.wakeWordFree`（默认关闭），免唤醒模式下识别出的非命令文本（环境音/闲聊等）静默忽略，不弹「未找到相关歌曲」、不报错
+- 语音识别文本日志：`SherpaEngine` 在 `onResult` 提交识别结果前打印 `ASR result text: [...]`（免唤醒模式为 `ASR free result text: [...]`），便于真机 logcat 定位识别质量与链路问题
+- 新增语音设置项「播放后自动停止监听」（`voice.autoStopAfterPlay`，默认关闭）：语音搜歌播放成功后自动停止语音监听；该设置触发的 `stopListening` 与采集线程的并发安全由本次安全停止协议保证（见修复项「播放时直接闪退」）
+
+## [1.9.7](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.6...v1.9.7) - 2026-10-04
+
+### 修复
+
+- 修复语音引擎初始化失败（toast 显示 `engine init failed: RuntimeException: Failed to get field ID for decodingMethod`）后 RN 红屏 Critical Error 崩溃的问题：release 构建开启 R8 混淆后，sherpa-onnx Java 桥接类（JNI 通过 GetFieldID/GetMethodID 按字段名/方法名反射访问）的字段被混淆改名，native 侧找不到 decodingMethod 等字段直接抛 RuntimeException 导致 init 失败；proguard-rules.pro 新增 `-keep class com.k2fsa.sherpa.onnx.** { *; }` 完整保留类名、字段名与方法名
+- 修复语音初始化异常导致 RN 红屏的问题：initVoice / setVoiceEnabled 增加 try-catch 兜底，原生桥接异常被捕获后仅 toast 提示不再外抛，且失败后不再继续 startListening 等后续调用
+
+## [1.9.6](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.5...v1.9.6) - 2026-10-04
+
+### 修复
+
+- 语音搜歌「语音服务初始化失败」难定位：SherpaEngine.init() 失败原因原先被吞掉仅打印日志，用户侧只收到笼统的 engine init failed；现记录具体异常类型与消息，并随 onError 透传给界面，toast 可显示真实失败原因（如缺失文件、native 构造失败等）
+- 新增 assets 模型完整性预检：init() 前逐文件校验 voice/asr 与 voice/kws 共 9 个模型文件，缺失时返回带具体缺失文件名的错误，避免缺失文件进入 native 加载触发 C++ SHERPA_ONNX_EXIT 闪退
+
+## [1.9.5](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.4...v1.9.5) - 2026-10-04
+
+### 修复
+
+- 修复语音搜歌引擎初始化失败（打开语音即闪退）的问题：KWS 模型实际为 zipformer2 架构，原代码误将 modelType 设为 zipformer，C++ 侧按 zipformer 解析 encoder metadata 时读取缺失的 attention_dims 字段触发 SHERPA_ONNX_EXIT 终止进程；现改为 zipformer2
+- 修复唤醒词无效的问题：KWS createStream 直接传入中文唤醒词（如「你好小马」），C++ 将其视为单个 token 查表失败返回空流，导致唤醒监听失效甚至空指针崩溃；现解析 keywords.txt 建立「中文唤醒词 → token 串」映射，createStream 传入模型词表中的 token 序列
 
 ## [1.9.4](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.3...v1.9.4) - 2026-10-04
 
@@ -1142,4 +1261,11 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 ## [0.1.1] - 2021-05-15
 
 - v0.1.1版本发布 🎊 🎉
+*（内容由AI生成，仅供参考）*
+*（内容由AI生成，仅供参考）*
+*（内容由AI生成，仅供参考）*
+*（内容由AI生成，仅供参考）*
+*（内容由AI生成，仅供参考）*
+*（内容由AI生成，仅供参考）*
+*（内容由AI生成，仅供参考）*
 *（内容由AI生成，仅供参考）*

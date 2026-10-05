@@ -620,6 +620,8 @@
   "setting_voice_wake_word_save_tip": "Wake word saved",
   "setting_voice_sensitivity": "Wake sensitivity",
   "setting_voice_auto_stop_after_play": "Back to standby after playing",
+  "setting_voice_wake_word_free": "Wake-word-free (say \"play song name\" directly)",
+  "setting_voice_wake_word_free_desc": "No wake word needed, just say \"play song name\" to search and play",
   "voice_wake_up": "Wake up, please say the song name",
   "voice_not_command": "No command recognized, say \"play song name\"",
   "voice_not_found": "No related songs found",

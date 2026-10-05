@@ -410,6 +410,11 @@ declare global {
        * 播放歌曲后是否自动停止本次语音监听
        */
       'voice.autoStopAfterPlay': boolean
+
+      /**
+       * 是否开启免唤醒模式（开启后无需喊唤醒词，直接说"播放 歌名"即可搜歌）
+       */
+      'voice.wakeWordFree': boolean
     }
   }
 }

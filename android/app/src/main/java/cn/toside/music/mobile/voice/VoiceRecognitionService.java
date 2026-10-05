@@ -22,8 +22,10 @@ public class VoiceRecognitionService extends Service {
   public static final String ACTION_DESTROY = "cn.toside.music.mobile.voice.DESTROY";
   public static final String ACTION_SET_WAKE_WORD = "cn.toside.music.mobile.voice.SET_WAKE_WORD";
   public static final String ACTION_SET_SENSITIVITY = "cn.toside.music.mobile.voice.SET_SENSITIVITY";
+  public static final String ACTION_SET_WAKE_WORD_FREE = "cn.toside.music.mobile.voice.SET_WAKE_WORD_FREE";
   public static final String EXTRA_WAKE_WORD = "wakeWord";
   public static final String EXTRA_SENSITIVITY = "sensitivity";
+  public static final String EXTRA_WAKE_WORD_FREE = "wakeWordFree";
 
   private static final String CHANNEL_ID = "voice_service";
   private static final int NOTIFICATION_ID = 10086;
@@ -71,14 +73,20 @@ public class VoiceRecognitionService extends Service {
     switch (action) {
       case ACTION_START:
         startForeground(NOTIFICATION_ID, buildNotification());
-        ensureEngineInit();
         if (intent.hasExtra(EXTRA_WAKE_WORD)) {
           engine.setWakeWord(intent.getStringExtra(EXTRA_WAKE_WORD));
         }
         if (intent.hasExtra(EXTRA_SENSITIVITY)) {
           engine.setSensitivity(intent.getFloatExtra(EXTRA_SENSITIVITY, 0.7f));
         }
-        engine.startListening();
+        if (intent.hasExtra(EXTRA_WAKE_WORD_FREE)) {
+          engine.setEnableWakeWord(!intent.getBooleanExtra(EXTRA_WAKE_WORD_FREE, false));
+        }
+        // 不再无条件 startListening：ensureEngineInit 为异步线程，立即启动采集会使
+        // captureLoop 在 spotter 尚未创建（null）时调用 createStream 触发 NPE 崩溃。
+        // 引擎已就绪则同步启动；未就绪则由 init 成功回调统一 startListening。
+        ensureEngineInit();
+        if (engineReady) engine.startListening();
         break;
       case ACTION_STOP:
         if (engineReady) engine.stopListening();
@@ -88,6 +96,11 @@ public class VoiceRecognitionService extends Service {
         break;
       case ACTION_SET_SENSITIVITY:
         if (intent.hasExtra(EXTRA_SENSITIVITY)) engine.setSensitivity(intent.getFloatExtra(EXTRA_SENSITIVITY, 0.7f));
+        break;
+      case ACTION_SET_WAKE_WORD_FREE:
+        if (intent.hasExtra(EXTRA_WAKE_WORD_FREE)) {
+          engine.setEnableWakeWord(!intent.getBooleanExtra(EXTRA_WAKE_WORD_FREE, false));
+        }
         break;
       case ACTION_DESTROY:
         stopForeground(true);
@@ -108,9 +121,11 @@ public class VoiceRecognitionService extends Service {
         Log.i(TAG, "engine initialized");
         engine.startListening();
       } else {
-        Log.e(TAG, "engine init failed");
+        String reason = engine.getLastInitError();
+        String msg = "engine init failed" + (reason != null && !reason.isEmpty() ? ": " + reason : "");
+        Log.e(TAG, msg);
         engine.stopListening();
-        VoiceModule.emitString("onError", "message", "engine init failed");
+        VoiceModule.emitString("onError", "message", msg);
       }
     }, "voice-engine-init").start();
   }
@@ -134,7 +149,7 @@ public class VoiceRecognitionService extends Service {
     }
     return builder
         .setContentTitle("语音搜歌已开启")
-        .setContentText("说\"你好小马\"开始搜歌")
+        .setContentText("说\"你好小马\"或直接说\"播放 歌名\"开始搜歌")
         .setSmallIcon(android.R.drawable.ic_btn_speak_now)
         .setOngoing(true)
         .build();

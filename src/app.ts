@@ -31,8 +31,8 @@ void Promise.all([getFontSize(), windowSizeTools.init()]).then(async([fontSize])
   const handleInit = async() => {
     if (isInited) return
     void initLog()
-    const { default: init } = await import('@/core/init')
     try {
+      const { default: init } = await import('@/core/init')
       handlePushedHomeScreen = await init()
     } catch (err: any) {
       void tipDialog({

@@ -13,7 +13,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 /**
  * RN 原生模块：车机语音搜歌入口。
- * 方法：init / startListening / stopListening / setWakeWord / setSensitivity / destroy
+ * 方法：init / startListening / stopListening / setWakeWord / setSensitivity / setWakeWordFree / destroy
  * 事件：onWakeUp / onResult / onError / onState
  */
 public class VoiceModule extends ReactContextBaseJavaModule {
@@ -79,6 +79,15 @@ public class VoiceModule extends ReactContextBaseJavaModule {
     Intent intent = new Intent(reactContext, VoiceRecognitionService.class)
         .setAction(VoiceRecognitionService.ACTION_SET_SENSITIVITY)
         .putExtra(VoiceRecognitionService.EXTRA_SENSITIVITY, (float) sensitivity);
+    reactContext.startService(intent);
+    promise.resolve(true);
+  }
+
+  @ReactMethod
+  public void setWakeWordFree(boolean wakeWordFree, Promise promise) {
+    Intent intent = new Intent(reactContext, VoiceRecognitionService.class)
+        .setAction(VoiceRecognitionService.ACTION_SET_WAKE_WORD_FREE)
+        .putExtra(VoiceRecognitionService.EXTRA_WAKE_WORD_FREE, wakeWordFree);
     reactContext.startService(intent);
     promise.resolve(true);
   }

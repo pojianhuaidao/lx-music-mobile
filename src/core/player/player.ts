@@ -230,6 +230,9 @@ const handleRestorePlay = async(restorePlayInfo: LX.Player.SavedPlayInfo) => {
     ) return
     setMusicInfo({ pic: url })
     global.app_event.picUpdated()
+  }).catch((err) => {
+    // 封面获取失败（网络/字段缺失）时兜底记录，避免 unhandled promise rejection
+    console.log('[getPicPath] failed', err)
   })
 
   void getLyricInfo({ musicInfo }).then((lyricInfo) => {
@@ -262,6 +265,9 @@ const debouncePlay = debounceBackgroundTimer((musicInfo: LX.Player.PlayMusic) =>
       playerState.loadErrorPicUrl == url) return
     setMusicInfo({ pic: url })
     global.app_event.picUpdated()
+  }).catch((err) => {
+    // 封面获取失败（网络/字段缺失）时兜底记录，避免 unhandled promise rejection
+    console.log('[getPicPath] failed', err)
   })
 
   void getLyricInfo({ musicInfo }).then((lyricInfo) => {
