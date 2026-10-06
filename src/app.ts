@@ -28,11 +28,14 @@ void Promise.all([getFontSize(), windowSizeTools.init()]).then(async([fontSize])
     }
   }
 
+  // 冷启动优化：init chunk 与 navigation chunk 并行加载，减少首屏前串行模块加载等待
+  const initModulePromise = import('@/core/init')
+
   const handleInit = async() => {
     if (isInited) return
     void initLog()
     try {
-      const { default: init } = await import('@/core/init')
+      const { default: init } = await initModulePromise
       handlePushedHomeScreen = await init()
     } catch (err: any) {
       void tipDialog({

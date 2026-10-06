@@ -120,6 +120,13 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 - 语音识别文本日志：`SherpaEngine` 在 `onResult` 提交识别结果前打印 `ASR result text: [...]`（免唤醒模式为 `ASR free result text: [...]`），便于真机 logcat 定位识别质量与链路问题
 - 新增语音设置项「播放后自动停止监听」（`voice.autoStopAfterPlay`，默认关闭）：语音搜歌播放成功后自动停止语音监听；该设置触发的 `stopListening` 与采集线程的并发安全由本次安全停止协议保证（见修复项「播放时直接闪退」）
 
+### 优化
+
+- 冷启动提速：拆分 critical path 与后台段，首屏前仅保留 setting/theme/i18n/player 等必要初始化（critical path 完成即 pushHomeScreen），音源注入（initUserApiAndApiSource）、下载模块（initDownloadData/配置同步）与本地音乐扫描移入首屏后后台注水，依赖 global.lx.apiInitPromise 兜底保证搜索/播放数据语义不变
+- init chunk 与 navigation chunk 并行加载，减少首屏前串行模块加载等待
+- dataInit 三读（用户列表/不喜欢列表/上次视图状态）与 initDownloadData 两读（下载列表/下载配置）改为 Promise.all 并行，压缩 AsyncStorage Bridge IPC 串行等待
+- bootLog 增加时间戳与阶段耗时统计（Date.now() 差值），各 init 段打点可量化冷启动耗时
+
 ## [1.9.7](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.6...v1.9.7) - 2026-10-04
 
 ### 修复

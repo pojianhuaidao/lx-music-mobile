@@ -28,10 +28,16 @@ export default async(appSetting: LX.AppSetting) => {
   // ]).catch(err => log.error(err))
   void musicSdkInit() // 初始化音乐sdk
   bootLog('User list init...')
-  setUserList(await getUserLists()) // 获取用户列表
-  setDislikeInfo(await getDislikeInfo()) // 获取不喜欢列表
+  // 冷启动优化：三读并行（AsyncStorage 均为原生 Bridge IPC，串行等待可压缩为一次并行）
+  const [userLists, dislikeList, viewPrevState] = await Promise.all([
+    getUserLists(),
+    getDislikeInfo(),
+    getViewPrevState(),
+  ])
+  setUserList(userLists) // 获取用户列表
+  setDislikeInfo(dislikeList) // 获取不喜欢列表
   bootLog('User list inited.')
-  setNavActiveId((await getViewPrevState()).id)
+  setNavActiveId(viewPrevState.id)
   void unlink(TEMP_FILE_PATH)
   // await initPrevPlayInfo(appSetting).catch(err => log.error(err)) // 初始化上次的歌曲播放信息
 }

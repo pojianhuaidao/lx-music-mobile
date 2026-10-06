@@ -100,8 +100,11 @@ export const watchDownloadListChanges = (): void => {
  */
 export const initDownloadData = async(): Promise<void> => {
   try {
-    // 加载下载列表
-    const list = await loadDownloadList()
+    // 冷启动优化：下载列表与下载配置两读并行（均为原生 Bridge IPC）
+    const [list, config] = await Promise.all([
+      loadDownloadList(),
+      loadDownloadConfig(),
+    ])
     
     // 过滤掉正在运行的任务，将它们设置为暂停状态
     const processedList = list.map(task => {
@@ -118,7 +121,6 @@ export const initDownloadData = async(): Promise<void> => {
     downloadAction.setList(processedList)
     
     // 加载下载配置
-    const config = await loadDownloadConfig()
     if (config) {
       downloadAction.setConfig(config)
     }
