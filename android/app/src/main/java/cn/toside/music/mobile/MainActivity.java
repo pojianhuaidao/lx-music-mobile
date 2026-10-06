@@ -3,6 +3,8 @@ package cn.toside.music.mobile;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.bridge.ReactContext;
@@ -11,21 +13,37 @@ import com.reactnativenavigation.NavigationApplication;
 
 public class MainActivity extends NavigationActivity {
 
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+  /**
+   * ACTION_VIEW + uri（文件/URL 打开）场景：先让 JS 完成 deeplink 路由处理，
+   * 再延迟补刷一次界面，避免立即刷新打断路由跳转。
+   */
+  private final Runnable delayedRefreshRunnable = new Runnable() {
+    @Override
+    public void run() {
+      refreshReactRootView();
+    }
+  };
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
   }
 
   /**
-   * 点击桌面图标恢复场景（系统强制小窗/后台返回时可能不触发常规 resume 刷新）：
-   * ACTION_MAIN 或无可识别业务 data 时，向 JS 层发送刷新事件，
-   * 由 JS 层 updateProps 触发 RN 根视图重渲染，一次点击即可恢复主界面。
+   * 点击桌面图标/媒体卡片恢复场景（系统强制小窗/后台返回时可能不触发常规 resume 刷新）：
+   * intent 非空即向 JS 层发送刷新事件，由 JS 层 updateProps 触发 RN 根视图重渲染；
+   * ACTION_VIEW 且带 uri 时延迟 500ms 补刷，待 deeplink 处理完成后再刷新，避免重复触发。
    */
   @Override
   public void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
-    if (intent != null
-      && (Intent.ACTION_MAIN.equals(intent.getAction()) || intent.getData() == null)) {
+    if (intent == null) return;
+    if (Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null) {
+      mainHandler.removeCallbacks(delayedRefreshRunnable);
+      mainHandler.postDelayed(delayedRefreshRunnable, 500);
+    } else {
       refreshReactRootView();
     }
   }

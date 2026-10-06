@@ -51,7 +51,8 @@ void Promise.all([getFontSize(), windowSizeTools.init()]).then(async([fontSize])
 
   initNavigation(async() => {
     await handleInit()
-    if (!isInited) return
+    // 初始化失败时 handlePushedHomeScreen 未赋值，直接退出（错误提示已在 handleInit 内处理）
+    if (!handlePushedHomeScreen) return
 
     await navigations.pushHomeScreen().then(() => {
       void handlePushedHomeScreen()

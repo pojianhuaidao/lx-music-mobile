@@ -14,12 +14,13 @@ const refreshCurrentScreen = () => {
   if (refreshTimer) return
   refreshTimer = setTimeout(() => {
     refreshTimer = null
-    const componentId = commonState.componentIds[COMPONENT_IDS.home]
-      ?? commonState.componentIds[COMPONENT_IDS.playDetail]
+    // 优先刷新当前可见的栈顶组件，避免刷新栈底引发布局/重绘竞争导致界面横跳
+    const componentId = commonState.componentIds[COMPONENT_IDS.playDetail]
       ?? commonState.componentIds[COMPONENT_IDS.songlistDetail]
       ?? commonState.componentIds[COMPONENT_IDS.comment]
+      ?? commonState.componentIds[COMPONENT_IDS.home]
     if (componentId) Navigation.updateProps(componentId, { refreshTick: Date.now() })
-  }, 50)
+  }, 400)
 }
 
 /**
