@@ -5,15 +5,54 @@ import { addUserApis, getUserApiList } from '@/utils/data'
 import { removeUserApi } from '../userApi'
 import { readAssetFile } from '@/utils/fs'
 
-const MAX_USER_API = 20
+const MAX_USER_API = 40
 const ASSET_DIR = 'lx-builtin-user-api'
 
+/**
+ * 内置音源注册表（2026-10-07 更新：集成 36 个用户音源）。
+ * - qdy/sixyin/flower/grass 四个条目为同名替换：资产文件内容已更新为
+ *   用户提供的最新版（全豆要[聚合音源]/六音音源/野花🌷/野草🌾），id/file 保持不变；
+ * - 其余为新增注册（file 与 assets 文件名完全一致，含 emoji/×/括号/空格等特殊字符）；
+ * - 同名（normalizeName 后）的内置条目视为重复：先注册者生效，后注册者由注入去重跳过。
+ */
 const BUILTIN_USER_APIS = [
   { id: 'qdy', file: 'qdy.js', name: '全豆要[聚合音源]' },
   { id: 'sixyin', file: 'sixyin.js', name: '六音音源' },
   { id: 'flower', file: 'flower.js', name: '野花🌷' },
   { id: 'grass', file: 'grass.js', name: '野草🌾' },
   { id: 'huibq', file: 'huibq.js', name: 'Huibq_lxmusic源' },
+  { id: 'fish_music', file: 'fish_music.js', name: 'fish_music' },
+  { id: 'gdstudio', file: 'gdstudio音乐源.js', name: 'gdstudio音乐源' },
+  { id: 'ikun_hk', file: 'ikun音源（中国香港服务器).js', name: 'ikun音源（中国香港服务器)' },
+  { id: 'index', file: 'index.js', name: 'index.js' },
+  { id: 'kh_test', file: 'K×H测试.js', name: 'K×H测试' },
+  { id: 'kuwo', file: 'KuwoDES.js', name: 'KuwoDES' },
+  { id: 'lx', file: 'lx.js', name: 'lx.js' },
+  { id: 'monster', file: 'monster🐱‍🐉.js', name: 'monster🐱‍🐉' },
+  { id: 'djsy', file: '独家音源.js', name: '独家音源' },
+  { id: 'feichangdao', file: '非常刀.js', name: '非常刀' },
+  { id: 'juhe_cf', file: '聚合API接口 (CF).js', name: '聚合API接口 (CF)' },
+  { id: 'juhe', file: '聚合API接口.js', name: '聚合API接口' },
+  { id: 'hires', file: '聚合Hi-Res音乐音源v1.0.js', name: '聚合Hi-Res音乐音源v1.0' },
+  { id: 'luoxue_music', file: '洛雪音乐源.js', name: '洛雪音乐源' },
+  { id: 'luoxue1', file: '洛雪音源1.js', name: '星海音乐源' },
+  { id: 'luoxue2', file: '洛雪音源2.js', name: '长青SVIP音源(二改修复版)' },
+  { id: 'luoxue3', file: '洛雪音源3.js', name: '杰翔聚合音源' },
+  { id: 'luoxue4', file: '洛雪音源4.js', name: '墨澜聚合音源' },
+  { id: 'luoxue5', file: '洛雪音源5.js', name: '野草🌾' },
+  { id: 'luoxue6', file: '洛雪音源6.js', name: 'K×H测试' },
+  { id: 'luoxue7', file: '洛雪音源7.js', name: '野花🌷' },
+  { id: 'luoxue8', file: '洛雪音源8.js', name: 'HYWmusic_beta_公益测试' },
+  { id: 'luoxue9', file: '洛雪音源9.js', name: '聚合API接口 (CF)' },
+  { id: 'luoxue10', file: '洛雪音源10.js', name: 'lx-玉宁熙-Pro' },
+  { id: 'luoxue11', file: '洛雪音源11.js', name: '屿溪-终章' },
+  { id: 'qdy2', file: '全豆要.js', name: '全豆要' },
+  { id: 'collect_lx', file: '收集の聚合接口(LX版).js', name: '收集の聚合接口(LX版)' },
+  { id: 'suyin', file: '溯音音源.js', name: '溯音音源' },
+  { id: 'stable', file: '稳定版音源 v1.0.3.js', name: '稳定版音源 v1.0.3' },
+  { id: 'wuming', file: '無名.js', name: '無名' },
+  { id: 'xingkong', file: '星空源.js', name: '星空源' },
+  { id: 'cloud', file: '云端音源(免费版).js', name: '云端音源(免费版)' },
 ] as const
 
 /**
@@ -24,12 +63,11 @@ const BUILTIN_USER_APIS = [
  * （如 juhe 网络版脚本内容与内置资产不一致），保证同类残留被彻底清除。
  * 2026-09-25 移除 lx（[独家音源]，即独家音源V4）与 ikun（ikun音源）：资产文件已删，
  * 旧版升级设备上的残留注入项（含用户已手动添加的同名网络版）按上述三判定一并清理。
+ * 2026-10-07 用户重新集成 聚合API接口 (CF) / ikun音源（中国香港服务器) / 独家音源 / lx.js
+ * 等音源，juhe/ikun/lx 三条已重新注册为内置源，故从本列表移除，避免启动时误清新注入项。
  */
-const REMOVED_BUILTIN_USER_APIS = [
-  { id: 'juhe', name: '聚合API接口 (CF)', hash: '6f788e66' },
-  { id: 'ikun', name: 'ikun音源', hash: '45c5e159' },
-  { id: 'lx', name: '[独家音源]', hash: 'b17362ad' },
-] as const
+type RemovedBuiltinUserApi = { id: string; name: string; hash: string }
+const REMOVED_BUILTIN_USER_APIS: readonly RemovedBuiltinUserApi[] = []
 
 /**
  * FNV-1a 32 位哈希（纯 JS，用于脚本内容一致性标识；非加密用途）。
@@ -120,17 +158,29 @@ export const seedBuiltinUserApis = async(): Promise<LX.UserApi.UserApiInfo[]> =>
         if (r.status === 'fulfilled') builtinHashes.set(matchedBuiltin[i].id, fnv1a32(r.value))
       }
       const removeIds: string[] = []
+      const reseedIds: string[] = [] // 需取消 seeded 标记的内置 id（内容更新后重新注入新版）
       for (const item of matchedBuiltin) {
         const bh = builtinHashes.get(item.id)
         const matchedIdx: number[] = []
         for (let i = 0; i < list.length; i++) {
           if (normalizeName(list[i].name) === normalizeName(item.name)) matchedIdx.push(i)
         }
-        if (matchedIdx.length <= 1) continue
+        if (matchedIdx.length === 0) continue
         const keepIdx = bh ? matchedIdx.find(i => listHashes[i] === bh) : undefined
-        const keep = keepIdx ?? matchedIdx[0]
-        for (const idx of matchedIdx) {
-          if (idx !== keep) removeIds.push(list[idx].id)
+        if (keepIdx !== undefined) {
+          // 存在与当前资产 hash 一致项（新版已注入），删除其余同名旧项/网络版
+          for (const idx of matchedIdx) {
+            if (idx !== keepIdx) removeIds.push(list[idx].id)
+          }
+        } else {
+          // 无与当前资产 hash 一致项：全部为旧版内容（内置源更新场景）或网络版同名项。
+          // 按「同名即重复、以新文件为准」删除全部同名项，并取消该内置 id 的 seeded 标记，
+          // 使其在下方注入流程中按最新资产重新注入。
+          for (const idx of matchedIdx) removeIds.push(list[idx].id)
+          if (bh && seededSet.has(item.id)) {
+            reseedIds.push(item.id)
+            seededSet.delete(item.id)
+          }
         }
       }
       if (removeIds.length > 0) {
@@ -142,6 +192,10 @@ export const seedBuiltinUserApis = async(): Promise<LX.UserApi.UserApiInfo[]> =>
         for (let i = list.length - 1; i >= 0; i--) {
           if (removedIdSet.has(list[i].id)) list.splice(i, 1)
         }
+      }
+      if (reseedIds.length > 0) {
+        console.log('seed builtin user api reseed after update', reseedIds)
+        seededChanged = true
       }
     }
   }

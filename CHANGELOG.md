@@ -127,6 +127,10 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 - dataInit 三读（用户列表/不喜欢列表/上次视图状态）与 initDownloadData 两读（下载列表/下载配置）改为 Promise.all 并行，压缩 AsyncStorage Bridge IPC 串行等待
 - bootLog 增加时间戳与阶段耗时统计（Date.now() 差值），各 init 段打点可量化冷启动耗时
 
+### 修改
+
+- 内置音源更新：assets/lx-builtin-user-api 集成 36 个用户音源（4 个同名替换：全豆要[聚合音源]/六音音源/野花🌷/野草🌾；32 个新增注册），原内置 huibq 源保留共存；`seedBuiltin.ts` BUILTIN_USER_APIS 同步扩展至 37 条，同步移除 REMOVED_BUILTIN_USER_APIS 中已重新集成的 juhe/ikun/lx 清理条目，避免启动时误清新注入项；同名替换源（已 seeded 设备）按「同名即重复、以新文件为准」删除旧内容并取消 seeded 重新注入新版；MAX_USER_API 由 20 提升至 40 以容纳新增内置源
+
 ## [1.9.7](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.6...v1.9.7) - 2026-10-04
 
 ### 修复
