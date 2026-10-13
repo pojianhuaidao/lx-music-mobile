@@ -16,7 +16,9 @@ export const handlePlay = async(list: LX.Music.MusicInfoOnline[], index: number)
   if (!list.length) return
   const listId = `online_list_${Date.now()}`
   await setTempList(listId, [...list])
-  void playList(LIST_IDS.TEMP, index)
+  void playList(LIST_IDS.TEMP, index).catch((err) => {
+    console.log('[OnlineList] playList failed', err)
+  })
 }
 export const handlePlayLater = (musicInfo: LX.Music.MusicInfoOnline, selectedList: LX.Music.MusicInfoOnline[], onCancelSelect: () => void) => {
   if (selectedList.length) {
@@ -50,7 +52,9 @@ export const handleDislikeMusic = async(musicInfo: LX.Music.MusicInfoOnline) => 
   await addDislikeInfo([{ name: musicInfo.name, singer: musicInfo.singer }])
   toast(global.i18n.t('lists_dislike_music_add_tip'))
   if (hasDislike(playerState.playMusicInfo.musicInfo)) {
-    void playNext(true)
+    void playNext(true).catch((err) => {
+      console.log('[OnlineList] playNext failed', err)
+    })
   }
 }
 

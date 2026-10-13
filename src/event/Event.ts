@@ -26,8 +26,14 @@ export default class Event {
       let targetListeners = this.listeners.get(eventName)
       if (!targetListeners) return
       for (const listener of targetListeners) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        listener(...args)
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          listener(...args)
+        } catch (err) {
+          // 单监听器异常隔离：网络差/播放器异常时任一监听器抛错
+          // 若直接冒泡到 setImmediate 会变成未捕获异常导致红屏/崩溃
+          console.error(`[Event] listener error for "${eventName}"`, err)
+        }
       }
     })
   }

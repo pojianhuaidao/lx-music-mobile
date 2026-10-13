@@ -13,7 +13,9 @@ import musicSdk from '@/utils/musicSdk'
 import { getListMusicSync } from '@/utils/listManage'
 
 export const handlePlay = (listId: SelectInfo['listId'], index: SelectInfo['index']) => {
-  void playList(listId, index)
+  void playList(listId, index).catch((err) => {
+    console.log('[MusicList] playList failed', err)
+  })
 }
 export const handlePlayLater = (listId: SelectInfo['listId'], musicInfo: SelectInfo['musicInfo'], selectedList: SelectInfo['selectedList'], onCancelSelect: () => void) => {
   if (selectedList.length) {
@@ -109,7 +111,9 @@ export const handleDislikeMusic = async(musicInfo: SelectInfo['musicInfo']) => {
   await addDislikeInfo([{ name: musicInfo.name, singer: musicInfo.singer }])
   toast(global.i18n.t('lists_dislike_music_add_tip'))
   if (hasDislike(playerState.playMusicInfo.musicInfo)) {
-    void playNext(true)
+    void playNext(true).catch((err) => {
+      console.log('[MusicList] playNext failed', err)
+    })
   }
 }
 
@@ -137,7 +141,9 @@ export const handleToggleSource = async(listId: string, musicInfo: LX.Music.Musi
     if (index != -1 && index < oldIdx) oldIdx--
     await updateListMusicPosition(listId, oldIdx, [id])
     if (playerState.playMusicInfo.listId == listId && playerState.playMusicInfo.musicInfo?.id == oldId) {
-      void playListById(listId, toggleMusicInfo.id)
+      void playListById(listId, toggleMusicInfo.id).catch((err) => {
+        console.log('[MusicList] playListById failed', err)
+      })
     }
   })
   return true

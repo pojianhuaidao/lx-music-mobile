@@ -16,7 +16,9 @@ export const handlePlay = async(id: string, list?: LX.Music.MusicInfoOnline[], i
   if (!list?.length) list = (await getListDetail(id, 1)).list
   if (list?.length) {
     await setTempList(listId, [...list])
-    void playList(LIST_IDS.TEMP, index)
+    void playList(LIST_IDS.TEMP, index).catch((err) => {
+      console.log('[Leaderboard] playList failed', err)
+    })
     isPlayingList = true
   }
   const fullList = await getListDetailAll(id)
@@ -27,7 +29,9 @@ export const handlePlay = async(id: string, list?: LX.Music.MusicInfoOnline[], i
     }
   } else {
     await setTempList(listId, [...fullList])
-    void playList(LIST_IDS.TEMP, index)
+    void playList(LIST_IDS.TEMP, index).catch((err) => {
+      console.log('[Leaderboard] playList failed', err)
+    })
   }
 }
 

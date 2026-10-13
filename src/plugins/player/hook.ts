@@ -11,7 +11,9 @@ export const usePlaybackState = () => {
       setState(playerState)
     }
 
-    void setPlayerState()
+    void setPlayerState().catch((err) => {
+      console.log('[usePlaybackState] getState failed', err)
+    })
 
     const sub = TrackPlayer.addEventListener(Event.PlaybackState, data => {
       setState(data.state as State)
@@ -102,10 +104,16 @@ export function useProgress(updateInterval: number) {
     // @ts-expect-error
     if (!pollTrackPlayerStates.includes(playerState)) return
 
-    void getProgress()
+    void getProgress().catch((err) => {
+      console.log('[useProgress] getProgress failed', err)
+    })
 
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    const poll = setInterval(getProgress, updateInterval || 1000)
+    const poll = setInterval(() => {
+      void getProgress().catch((err) => {
+        console.log('[useProgress] getProgress failed', err)
+      })
+    }, updateInterval || 1000)
     return () => { clearInterval(poll) }
   }, [playerState, updateInterval])
 
@@ -161,8 +169,14 @@ export function useBufferProgress() {
           // console.log('state', 'Buffering')
           clearItv()
           duration = 0
-          interval = setInterval(updateBuffer, 1000)
-          void updateBuffer()
+          interval = setInterval(() => {
+            void updateBuffer().catch((err) => {
+              console.log('[useBufferProgress] updateBuffer failed', err)
+            })
+          }, 1000)
+          void updateBuffer().catch((err) => {
+            console.log('[useBufferProgress] updateBuffer failed', err)
+          })
           break
         // case State.Connecting:
         //   console.log('state', 'Connecting')
@@ -173,9 +187,19 @@ export function useBufferProgress() {
       }
     })
 
-    void updateBuffer()
+    void updateBuffer().catch((err) => {
+      console.log('[useBufferProgress] updateBuffer failed', err)
+    })
     void TrackPlayer.getState().then((state) => {
-      if (state == State.Buffering) interval = setInterval(updateBuffer, 1000)
+      if (state == State.Buffering) {
+        interval = setInterval(() => {
+          void updateBuffer().catch((err) => {
+            console.log('[useBufferProgress] updateBuffer failed', err)
+          })
+        }, 1000)
+      }
+    }).catch((err) => {
+      console.log('[useBufferProgress] getState failed', err)
     })
     return () => {
       isUnmounted = true

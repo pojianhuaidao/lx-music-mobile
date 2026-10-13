@@ -8,13 +8,19 @@ export const handlePlayerAction = async(action: PlayerAction) => {
       play()
       break
     case 'pause':
-      void pause()
+      void pause().catch((err) => {
+        console.log('[playerAction] pause failed', err)
+      })
       break
     case 'skipNext':
-      void playNext()
+      void playNext().catch((err) => {
+        console.log('[playerAction] playNext failed', err)
+      })
       break
     case 'skipPrev':
-      void playPrev()
+      void playPrev().catch((err) => {
+        console.log('[playerAction] playPrev failed', err)
+      })
       break
     case 'togglePlay':
       togglePlay()
@@ -26,7 +32,9 @@ export const handlePlayerAction = async(action: PlayerAction) => {
       uncollectMusic()
       break
     case 'dislike':
-      void dislikeMusic()
+      void dislikeMusic().catch((err) => {
+        console.log('[playerAction] dislikeMusic failed', err)
+      })
       break
     // default: throw new Error('Unknown action: ' + (action as any ?? ''))
   }

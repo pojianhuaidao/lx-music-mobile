@@ -16,8 +16,9 @@ public class MainActivity extends NavigationActivity {
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
   /**
-   * ACTION_VIEW + uri（文件/URL 打开）场景：先让 JS 完成 deeplink 路由处理，
-   * 再延迟补刷一次界面，避免立即刷新打断路由跳转。
+   * 统一延迟补刷：同一次前台恢复中 onNewIntent / onMultiWindowModeChanged 可能接连触发，
+   * 先 removeCallbacks 合并为一次，配合 JS 层 refreshOnForeground 防抖，避免两次刷新导致
+   * 画中画点击图标偶发闪烁；延迟同时保证 deeplink 路由处理完成后再刷新。
    */
   private final Runnable delayedRefreshRunnable = new Runnable() {
     @Override
@@ -34,28 +35,27 @@ public class MainActivity extends NavigationActivity {
   /**
    * 点击桌面图标/媒体卡片恢复场景（系统强制小窗/后台返回时可能不触发常规 resume 刷新）：
    * intent 非空即向 JS 层发送刷新事件，由 JS 层 updateProps 触发 RN 根视图重渲染；
-   * ACTION_VIEW 且带 uri 时延迟 500ms 补刷，待 deeplink 处理完成后再刷新，避免重复触发。
+   * 统一延迟 500ms 补刷（同批事件先 removeCallbacks 合并），避免立即刷新 + 延迟补刷
+   * 双重重绘造成的画中画点击图标偶发闪烁。
    */
   @Override
   public void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     if (intent == null) return;
-    if (Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null) {
-      mainHandler.removeCallbacks(delayedRefreshRunnable);
-      mainHandler.postDelayed(delayedRefreshRunnable, 500);
-    } else {
-      refreshReactRootView();
-    }
+    mainHandler.removeCallbacks(delayedRefreshRunnable);
+    mainHandler.postDelayed(delayedRefreshRunnable, 500);
   }
 
   /**
-   * 退出多窗口/媒体小窗时同样强制刷新 RN 根视图，避免界面停留在小窗尺寸/空白状态。
+   * 退出多窗口/媒体小窗时同样强制刷新 RN 根视图，避免界面停留在小窗尺寸/空白状态；
+   * 与 onNewIntent 共用延迟补刷通道，防止连续触发时重复刷新。
    */
   @Override
   public void onMultiWindowModeChanged(boolean isInMultiWindowMode, Configuration newConfig) {
     super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig);
     if (!isInMultiWindowMode) {
-      refreshReactRootView();
+      mainHandler.removeCallbacks(delayedRefreshRunnable);
+      mainHandler.postDelayed(delayedRefreshRunnable, 500);
     }
   }
 

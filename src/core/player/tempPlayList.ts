@@ -9,7 +9,9 @@ import { playNext } from './player'
  */
 export const addTempPlayList = (list: LX.Player.TempPlayListItem[]) => {
   playerActions.addTempPlayList(list)
-  if (!playerState.playMusicInfo.musicInfo) void playNext()
+  if (!playerState.playMusicInfo.musicInfo) void playNext().catch((err) => {
+    console.log('[tempPlayList] playNext failed', err)
+  })
 }
 /**
  * 从稍后播放列表移除歌曲

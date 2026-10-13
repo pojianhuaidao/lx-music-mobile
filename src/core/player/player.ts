@@ -48,7 +48,9 @@ const createDelayNextTimeout = (delay: number) => {
       timeout = null
       if (global.lx.isPlayedStop) return
       console.log('delay next timeout timeout', delay)
-      void playNext(true)
+      void playNext(true).catch((err) => {
+        console.log('[player] delay next playNext failed', err)
+      })
     }, delay)
   }
 
@@ -154,7 +156,12 @@ export const setMusicUrl = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
   }).catch((err: any) => {
     console.log(err)
     setStatusText(err.message as string)
-    global.app_event.error()
+    try {
+      global.app_event.error()
+    } catch (e) {
+      // error 事件监听器抛错时兜底，避免 catch 链内再次 reject 造成 unhandled rejection
+      console.log('[setMusicUrl] app_event.error failed', e)
+    }
     addDelayNextTimeout()
   }).finally(() => {
     if (musicInfo === playerState.playMusicInfo.musicInfo) {
@@ -182,7 +189,9 @@ export const handleAutoSwitchSource = async() => {
   if (autoSwitchNum >= 2) {
     autoSwitchNum = 0
     setStatusText(global.i18n.t('auto_switch_source_failed'))
-    void playNext(true)
+    void playNext(true).catch((err) => {
+      console.log('[autoSwitchSource] playNext failed', err)
+    })
     return
   }
 
@@ -206,7 +215,9 @@ export const handleAutoSwitchSource = async() => {
     if (autoSwitchNum >= 2) {
       autoSwitchNum = 0
       setStatusText(global.i18n.t('auto_switch_source_failed'))
-      void playNext(true)
+      void playNext(true).catch((err) => {
+        console.log('[autoSwitchSource] playNext failed', err)
+      })
     }
   }
 }
@@ -289,42 +300,48 @@ const debouncePlay = debounceBackgroundTimer((musicInfo: LX.Player.PlayMusic) =>
 
 // 处理音乐播放
 const handlePlay = async() => {
-  if (!isInitialized()) {
-    await checkNotificationPermission()
-    void checkIgnoringBatteryOptimization()
-    await playerInitial({
-      volume: settingState.setting['player.volume'],
-      playRate: settingState.setting['player.playbackRate'],
-      cacheSize: settingState.setting['player.cacheSize'] ? parseInt(settingState.setting['player.cacheSize']) : 0,
-      isHandleAudioFocus: settingState.setting['player.isHandleAudioFocus'],
-      isEnableAudioOffload: settingState.setting['player.isEnableAudioOffload'],
-    })
+  try {
+    if (!isInitialized()) {
+      await checkNotificationPermission()
+      void checkIgnoringBatteryOptimization()
+      await playerInitial({
+        volume: settingState.setting['player.volume'],
+        playRate: settingState.setting['player.playbackRate'],
+        cacheSize: settingState.setting['player.cacheSize'] ? parseInt(settingState.setting['player.cacheSize']) : 0,
+        isHandleAudioFocus: settingState.setting['player.isHandleAudioFocus'],
+        isEnableAudioOffload: settingState.setting['player.isEnableAudioOffload'],
+      })
+    }
+
+    global.lx.isPlayedStop &&= false
+    resetRandomNextMusicInfo()
+
+    if (global.lx.restorePlayInfo) {
+      void handleRestorePlay(global.lx.restorePlayInfo)
+      global.lx.restorePlayInfo = null
+      return
+    }
+
+    const playMusicInfo = playerState.playMusicInfo
+    const musicInfo = playMusicInfo.musicInfo
+
+    if (!musicInfo) return
+
+    await setStop()
+    global.app_event.pause()
+
+    clearDelayNextTimeout()
+    clearLoadTimeout()
+
+
+    if (settingState.setting['player.togglePlayMethod'] == 'random' && !playMusicInfo.isTempPlay) addPlayedList(playMusicInfo as LX.Player.PlayMusicInfo)
+
+    debouncePlay(musicInfo)
+  } catch (err) {
+    // 网络差/播放器初始化异常时 setStop 或 playerInitial 可能 reject，兜底避免自动切歌链路崩溃
+    console.log('[handlePlay] failed', err)
+    setStatusText(global.i18n.t('player__error'))
   }
-
-  global.lx.isPlayedStop &&= false
-  resetRandomNextMusicInfo()
-
-  if (global.lx.restorePlayInfo) {
-    void handleRestorePlay(global.lx.restorePlayInfo)
-    global.lx.restorePlayInfo = null
-    return
-  }
-
-  const playMusicInfo = playerState.playMusicInfo
-  const musicInfo = playMusicInfo.musicInfo
-
-  if (!musicInfo) return
-
-  await setStop()
-  global.app_event.pause()
-
-  clearDelayNextTimeout()
-  clearLoadTimeout()
-
-
-  if (settingState.setting['player.togglePlayMethod'] == 'random' && !playMusicInfo.isTempPlay) addPlayedList(playMusicInfo as LX.Player.PlayMusicInfo)
-
-  debouncePlay(musicInfo)
 }
 
 /**
@@ -662,7 +679,9 @@ export const play = () => {
     if (createGettingUrlId(playerState.playMusicInfo.musicInfo) != global.lx.gettingUrlId) setMusicUrl(playerState.playMusicInfo.musicInfo)
     return
   }
-  void setPlay()
+  void setPlay().catch((err) => {
+    console.log('[player] setPlay failed', err)
+  })
 }
 
 /**
@@ -688,7 +707,9 @@ export const stop = async() => {
 export const togglePlay = () => {
   global.lx.isPlayedStop &&= false
   if (playerState.isPlay) {
-    void pause()
+    void pause().catch((err) => {
+      console.log('[player] pause failed', err)
+    })
   } else {
     play()
   }
@@ -725,6 +746,8 @@ export const dislikeMusic = async() => {
   if (!playerState.playMusicInfo.musicInfo) return
   const minfo = 'progress' in playerState.playMusicInfo.musicInfo ? playerState.playMusicInfo.musicInfo.metadata.musicInfo : playerState.playMusicInfo.musicInfo
   await addDislikeInfo([{ name: minfo.name, singer: minfo.singer }])
-  await playNext(true)
+  await playNext(true).catch((err) => {
+    console.log('[player] dislike playNext failed', err)
+  })
 }
 

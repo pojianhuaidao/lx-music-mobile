@@ -160,7 +160,9 @@ const handlePlayMusic = async(musicInfo: LX.Player.PlayMusic, url: string, time:
   }
 
   if (queue.length > 2) {
-    void TrackPlayer.remove(Array(queue.length - 2).fill(null).map((_, i) => i)).then(() => list.splice(0, list.length - 2))
+    void TrackPlayer.remove(Array(queue.length - 2).fill(null).map((_, i) => i)).then(() => list.splice(0, list.length - 2)).catch((err) => {
+      console.log('[handlePlayMusic] remove tracks failed', err)
+    })
   }
 }
 let playPromise = Promise.resolve()
@@ -169,7 +171,11 @@ export const playMusic = (musicInfo: LX.Player.PlayMusic, url: string, time: num
   const id = actionId = Math.random()
   void playPromise.finally(() => {
     if (id != actionId) return
-    playPromise = handlePlayMusic(musicInfo, url, time)
+    playPromise = handlePlayMusic(musicInfo, url, time).catch((err) => {
+      // 网络差/原生播放器异常时 add/skip/play 可能 reject，兜底避免 playPromise 变为
+      // rejected 后在下次 finally 链上产生 unhandled rejection
+      console.log('[playMusic] failed', err)
+    })
   })
 }
 
@@ -262,7 +268,11 @@ const debounceUpdateMetaInfoTools = {
       return this.updateMetaPromise.then(() => {
         // console.log('run')
         if (this.musicInfo?.id === musicInfo.id) {
-          this.updateMetaPromise = updateMetaInfo(musicInfo, lyric)
+          this.updateMetaPromise = updateMetaInfo(musicInfo, lyric).catch((err) => {
+            // 通知栏元数据更新失败兜底，避免 updateMetaPromise 进入 rejected 态后
+            // 后续 then 链产生 unhandled rejection
+            console.log('[updateMetaInfo] failed', err)
+          })
         }
       })
     })

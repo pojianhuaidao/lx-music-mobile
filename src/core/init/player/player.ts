@@ -14,7 +14,9 @@ export default async(setting: LX.AppSetting) => {
   }
   const setPauseStatus = () => {
     setIsPlay(false)
-    if (global.lx.isPlayedStop) void pause()
+    if (global.lx.isPlayedStop) void pause().catch((err) => {
+      console.log('[player] pause failed', err)
+    })
   }
 
   const handleEnded = () => {
@@ -27,14 +29,18 @@ export default async(setting: LX.AppSetting) => {
     // global.app_event.stop()
     global.app_event.setProgress(0)
     setStatusText(global.i18n.t('player__end'))
-    void playNext(true)
+    void playNext(true).catch((err) => {
+      console.log('[player] ended playNext failed', err)
+    })
     // })
   }
 
   const setStopStatus = () => {
     setIsPlay(false)
     setStatusText('')
-    void setStop()
+    void setStop().catch((err) => {
+      console.log('[player] setStop failed', err)
+    })
   }
 
   const updatePic = () => {

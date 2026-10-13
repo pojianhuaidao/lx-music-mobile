@@ -27,7 +27,9 @@ export default () => {
       // 如果加载超时，则尝试刷新URL
       if (prevTimeoutId == playerState.musicInfo.id) {
         prevTimeoutId = null
-        void playNext(true)
+        void playNext(true).catch((err) => {
+          console.log('[playerEvent] load timeout playNext failed', err)
+        })
       } else {
         prevTimeoutId = playerState.musicInfo.id
         if (playerState.playMusicInfo.musicInfo) {
@@ -72,7 +74,9 @@ export default () => {
         setStatusText('')
         return
       }
-      void playNext(true)
+      void playNext(true).catch((err) => {
+        console.log('[playerEvent] delay next playNext failed', err)
+      })
     }, 5000)
   }
 
@@ -121,17 +125,24 @@ export default () => {
         setMusicUrl(playerState.playMusicInfo.musicInfo, true)
         startAutoSwitchTimeout()
         setStatusText(global.i18n.t('player__refresh_url'))
+      }).catch((err) => {
+        // getPosition 在播放器初始化异常/无队列时可能 reject，兜底避免 unhandled rejection
+        console.log('[playerEvent] getPosition failed', err)
       })
       return
     }
-    if (!isEmpty()) void setStop()
+    if (!isEmpty()) void setStop().catch((err) => {
+      console.log('[playerEvent] setStop failed', err)
+    })
 
     if (isActive()) {
       setStatusText(global.i18n.t('player__error'))
       setTimeout(addDelayNextTimeout)
     } else {
       console.warn('error skip to next')
-      void playNext(true)
+      void playNext(true).catch((err) => {
+        console.log('[playerEvent] playNext failed', err)
+      })
     }
   }
 

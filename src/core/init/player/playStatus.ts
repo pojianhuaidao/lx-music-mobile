@@ -19,7 +19,9 @@ export default () => {
   const setButtons = () => {
     // setPlayerAction(buttons)
     if (!playerState.playMusicInfo.musicInfo) return
-    void updateMetaData(playerState.musicInfo, playerState.isPlay, playerState.lastLyric)
+    void updateMetaData(playerState.musicInfo, playerState.isPlay, playerState.lastLyric).catch((err) => {
+      console.log('[playStatus] updateMetaData failed', err)
+    })
   }
   // const updateCollectStatus = async() => {
   //   // let status = !!playMusicInfo.musicInfo && await checkListExistMusic(LIST_ID_LOVE, playerState.playMusicInfo.musicInfo.id)

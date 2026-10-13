@@ -24,7 +24,9 @@ export const handleFileMusicAction = async(file: FileType) => {
   const musicInfo = info ? buildLocalMusicInfo(file.path, info) : buildLocalMusicInfoByFilePath(file)
   console.log(musicInfo)
   addTempPlayList([{ listId: LIST_IDS.PLAY_LATER, musicInfo, isTop: true }])
-  if (isPlaying) void playNext()
+  if (isPlaying) void playNext().catch((err) => {
+    console.log('[fileAction] playNext failed', err)
+  })
 }
 
 export const handleFileJSAction = async(file: FileType) => {
