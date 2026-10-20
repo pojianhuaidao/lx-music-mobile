@@ -105,9 +105,11 @@ export const getLocalBuildNumber = async() => {
 
 /**
  * 检查 GitHub Releases 是否有新版本。
- * 对比规则：① 版本号优先；② 版本号相同比较 build 号（远端 CI run_number vs 本地注入 BUILD_NUMBER，
- * 本地构建/旧版本为 0，只要远端 build > 0 即判定有新版本）；③ 再比较发布时间（远端 release
- * 发布时间 vs 本地构建注入时间），避免远端无 build 号时漏检。
+ * 对比规则：① 版本号优先；② 版本号相同且本地 build 号有效（>0，CI 发布版注入 BUILD_NUMBER）时，
+ * 仅比较 build 号：remoteBuild > localBuild 才判定有新版本，相等即同版本（不提示）；
+ * ③ 仅当本地 build 号缺失/为 0（旧版本或本地构建）时，才用发布时间兜底（远端 release 发布时间
+ * vs 本地构建注入时间）。注意：build 号相等时严禁走发布时间兜底——构建开始时间必然早于
+ * Release 发布时间，会稳定误判为新版本。
  */
 export const checkUpdate = async(): Promise<UpdateInfo | null> => {
   const release = await requestLatestRelease(RELEASE_API)
@@ -136,7 +138,11 @@ export const checkUpdate = async(): Promise<UpdateInfo | null> => {
   if (verCmp > 0) return makeInfo()
   if (verCmp === 0) {
     const localBuild = await getLocalBuildNumber()
-    if (remoteBuild > 0 && (localBuild === 0 || remoteBuild > localBuild)) return makeInfo()
+    if (localBuild > 0) {
+      // 本地 build 号有效（CI 发布版）：仅比较 build 号，相等即同版本，绝不误报
+      return remoteBuild > localBuild ? makeInfo() : null
+    }
+    // 本地 build 号缺失/为 0（旧版本或本地构建）：build 号不可比，退化为发布时间兜底
     const buildTime = await getLocalBuildTime()
     if (buildTime > 0 && publishedAt > buildTime) return makeInfo()
   }
