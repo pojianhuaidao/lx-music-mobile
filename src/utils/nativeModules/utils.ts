@@ -10,6 +10,8 @@ export const installApk = (filePath: string, fileProviderAuthority: string) => U
 
 export const getBuildTime = async(): Promise<number> => UtilsModule.getBuildTime?.() ?? Promise.resolve(0)
 
+export const getBuildNumber = async(): Promise<number> => UtilsModule.getBuildNumber?.() ?? Promise.resolve(0)
+
 
 export const screenkeepAwake = () => {
   if (global.lx.isScreenKeepAwake) return

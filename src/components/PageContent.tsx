@@ -71,7 +71,7 @@ export default ({ children }: Props) => {
         blurRadius={glassBg ? GLASS_BLUR_RADIUS : undefined}
       >
       </ImageBackground>
-      <View style={{ flex: 1, flexDirection: 'column', backgroundColor: glassBg ? toAlphaColor(theme['c-main-background'], glassOpacity) : theme['c-main-background'] }}>
+      <View style={{ flex: 1, flexDirection: 'column', backgroundColor: glassBg ? toAlphaColor(theme['c-main-background'], glassOpacity ?? 0.55) : theme['c-main-background'] }}>
         {children}
       </View>
     </View>
@@ -85,7 +85,7 @@ export default ({ children }: Props) => {
           resizeMode="cover"
           blurRadius={BLUR_RADIUS}
         >
-          <View style={{ flex: 1, flexDirection: 'column', backgroundColor: theme['c-content-background'], opacity: glassBg ? glassOpacity : 0.76 }}></View>
+          <View style={{ flex: 1, flexDirection: 'column', backgroundColor: theme['c-content-background'], opacity: glassBg ? (glassOpacity ?? 0.55) : 0.76 }}></View>
         </ImageBackground>
         <View style={{ flex: 1, flexDirection: 'column' }}>
           {children}

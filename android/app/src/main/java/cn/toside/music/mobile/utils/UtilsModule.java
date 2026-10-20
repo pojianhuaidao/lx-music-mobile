@@ -430,5 +430,17 @@ public class UtilsModule extends ReactContextBaseJavaModule {
       promise.resolve(true);
     }
   }
+
+  // 获取构建时注入的本地构建时间（epoch 秒）；旧版本无注入时返回 0
+  @ReactMethod
+  public void getBuildTime(Promise promise) {
+    promise.resolve(BuildConfig.BUILD_TIME);
+  }
+
+  // 获取构建时注入的 CI build number（本地构建为 0）；用于版本号相同时比较 build 号
+  @ReactMethod
+  public void getBuildNumber(Promise promise) {
+    promise.resolve(BuildConfig.BUILD_NUMBER);
+  }
 }
 

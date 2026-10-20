@@ -1,7 +1,7 @@
 import { httpGet } from '@/utils/request'
 import { downloadFile, existsFile, unlink } from '@/utils/fs'
-import { getBuildTime, installApk } from '@/utils/nativeModules/utils'
-import { version, versionCode } from '../../package.json'
+import { getBuildNumber, getBuildTime, installApk } from '@/utils/nativeModules/utils'
+import { version } from '../../package.json'
 
 const REPO = 'pojianhuaidao/lx-music-mobile'
 const RELEASE_API = `https://api.github.com/repos/${REPO}/releases/latest`
@@ -89,10 +89,25 @@ export const getLocalBuildTime = async() => {
   return buildTimePromise
 }
 
+let buildNumberPromise: Promise<number> | null = null
+// 本地 APK 的 CI build number（构建时注入的 BUILD_NUMBER，本地构建为 0）；旧版本无注入时为 0
+export const getLocalBuildNumber = async() => {
+  if (buildNumberPromise) return buildNumberPromise
+  buildNumberPromise = (async() => {
+    try {
+      return await getBuildNumber()
+    } catch {
+      return 0
+    }
+  })()
+  return buildNumberPromise
+}
+
 /**
  * 检查 GitHub Releases 是否有新版本。
- * 对比规则：① 版本号优先；② 版本号相同比较 build 号（远端 CI run_number vs 本地 versionCode）；
- * ③ 再比较发布时间（远端 release 发布时间 vs 本地构建注入时间），避免本地构建无 build 号时漏检。
+ * 对比规则：① 版本号优先；② 版本号相同比较 build 号（远端 CI run_number vs 本地注入 BUILD_NUMBER，
+ * 本地构建/旧版本为 0，只要远端 build > 0 即判定有新版本）；③ 再比较发布时间（远端 release
+ * 发布时间 vs 本地构建注入时间），避免远端无 build 号时漏检。
  */
 export const checkUpdate = async(): Promise<UpdateInfo | null> => {
   const release = await requestLatestRelease(RELEASE_API)
@@ -120,7 +135,8 @@ export const checkUpdate = async(): Promise<UpdateInfo | null> => {
   const verCmp = compareVersion(remoteVersion, version)
   if (verCmp > 0) return makeInfo()
   if (verCmp === 0) {
-    if (remoteBuild > versionCode) return makeInfo()
+    const localBuild = await getLocalBuildNumber()
+    if (remoteBuild > 0 && (localBuild === 0 || remoteBuild > localBuild)) return makeInfo()
     const buildTime = await getLocalBuildTime()
     if (buildTime > 0 && publishedAt > buildTime) return makeInfo()
   }

@@ -119,6 +119,9 @@ android {
         // 构建时注入本地生成时间（epoch 秒），用于启动时与 GitHub 最新 Release 发布时间对比
         def buildTimeSec = (System.currentTimeMillis() / 1000) as long
         buildConfigField "long", "BUILD_TIME", "${buildTimeSec}L"
+        // 构建时注入 CI run number（GitHub Actions 为 GITHUB_RUN_NUMBER，本地构建为 0），用于版本号相同时比较 build 号
+        def buildNumber = System.getenv("GITHUB_RUN_NUMBER") ?: "0"
+        buildConfigField "int", "BUILD_NUMBER", buildNumber
     }
 
     buildFeatures {

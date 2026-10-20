@@ -55,6 +55,7 @@
   "update_modal_install": "Install update",
   "update_modal_close": "Close",
   "update_modal_failed": "Download failed. Check your network and try again.",
+  "update_check_failed": "Update check failed. Please check your network and try again.",
   "dislike": "Dislike",
   "duplicate_list_tip": "You have collected this list \"{name}\", do you need to update the songs in it?",
   "edit_metadata": "Edit Metadata",
