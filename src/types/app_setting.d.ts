@@ -112,6 +112,16 @@ declare global {
       'theme.fontShadow': boolean
 
       /**
+       * 启用毛玻璃背景
+       */
+      'theme.glassBg': boolean
+
+      /**
+       * 毛玻璃背景透明度
+       */
+      'theme.glassOpacity': number
+
+      /**
        * 启动时自动播放歌曲
        */
       'player.startupAutoPlay': boolean

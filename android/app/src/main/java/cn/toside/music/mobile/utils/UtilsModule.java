@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import cn.toside.music.mobile.BuildConfig;
+
 public class UtilsModule extends ReactContextBaseJavaModule {
   private final ReactApplicationContext reactContext;
 

@@ -17,9 +17,11 @@ import {
   SONGLIST_DETAIL_SCREEN,
   COMMENT_SCREEN,
   PACT_MODAL,
+  UPDATE_MODAL,
   // SETTING_SCREEN,
 } from './screenNames'
 import PactModal from './components/PactModal'
+import UpdateModal from './components/UpdateModal'
 
 function WrappedComponent(Component: any) {
   return function inject(props: Record<string, any>) {
@@ -41,6 +43,7 @@ export default () => {
   Navigation.registerComponent(SONGLIST_DETAIL_SCREEN, () => WrappedComponent(SonglistDetail))
   Navigation.registerComponent(COMMENT_SCREEN, () => WrappedComponent(Comment))
   Navigation.registerComponent(PACT_MODAL, () => WrappedComponent(PactModal))
+  Navigation.registerComponent(UPDATE_MODAL, () => WrappedComponent(UpdateModal))
   // Navigation.registerComponent(SETTING_SCREEN, () => WrappedComponent(Setting))
 
   console.info('All screens have been registered...')

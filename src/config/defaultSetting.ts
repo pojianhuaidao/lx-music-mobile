@@ -85,6 +85,8 @@ const defaultSetting: LX.AppSetting = {
   'theme.hideBgDark': false,
   'theme.dynamicBg': false,
   'theme.fontShadow': false,
+  'theme.glassBg': false,
+  'theme.glassOpacity': 0.55,
 }
 
 

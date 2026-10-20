@@ -7,6 +7,7 @@ import initPlayer from './player'
 import dataInit from './dataInit'
 import initCommonState from './common'
 import { initDeeplink } from './deeplink'
+import { initUpdateCheck } from './updateCheck'
 import { setApiSource } from '@/core/apiSource'
 import commonActions from '@/store/common/action'
 import settingState from '@/store/setting/state'
@@ -24,6 +25,7 @@ const handlePushedHomeScreen = async() => {
     if (isFirstPush) {
       isFirstPush = false
       void initDeeplink()
+      initUpdateCheck()
     }
   } else {
     if (isFirstPush) isFirstPush = false

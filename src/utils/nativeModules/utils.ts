@@ -8,6 +8,8 @@ export const getSupportedAbis = UtilsModule.getSupportedAbis
 
 export const installApk = (filePath: string, fileProviderAuthority: string) => UtilsModule.installApk(filePath, fileProviderAuthority)
 
+export const getBuildTime = async(): Promise<number> => UtilsModule.getBuildTime?.() ?? Promise.resolve(0)
+
 
 export const screenkeepAwake = () => {
   if (global.lx.isScreenKeepAwake) return

@@ -3,6 +3,7 @@ export const PLAY_DETAIL_SCREEN = 'lxm.PlayDetailScreen'
 export const SONGLIST_DETAIL_SCREEN = 'lxm.SonglistDetailScreen'
 export const COMMENT_SCREEN = 'lxm.CommentScreen'
 export const PACT_MODAL = 'lxm.PactModal'
+export const UPDATE_MODAL = 'lxm.UpdateModal'
 // export const SETTING_SCREEN = 'lxm.SettingScreen'
 // export const TOAST_SCREEN = 'lxm.ToastScreen'
 

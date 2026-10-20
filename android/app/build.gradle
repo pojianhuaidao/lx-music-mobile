@@ -115,6 +115,14 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode verCode
         versionName verName
+
+        // 构建时注入本地生成时间（epoch 秒），用于启动时与 GitHub 最新 Release 发布时间对比
+        def buildTimeSec = (System.currentTimeMillis() / 1000) as long
+        buildConfigField "long", "BUILD_TIME", "${buildTimeSec}L"
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     splits {
