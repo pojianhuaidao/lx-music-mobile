@@ -30,6 +30,36 @@ public class MainActivity extends NavigationActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    // 车机小窗/多窗口毛玻璃：RN 就绪后把窗口背景置为透明，露出车机桌面壁纸；
+    // 启动阶段窗口背景仍为品牌色（styles.xml #039893），避免闪白。
+    try {
+      ReactInstanceManager reactInstanceManager = ((NavigationApplication) getApplication())
+          .getReactNativeHost()
+          .getReactInstanceManager();
+      reactInstanceManager.addReactInstanceEventListener(new ReactInstanceManager.ReactInstanceEventListener() {
+        @Override
+        public void onReactContextInitialized(ReactContext context) {
+          applyTranslucentWindow();
+        }
+      });
+      if (reactInstanceManager.getCurrentReactContext() != null) {
+        applyTranslucentWindow();
+      }
+    } catch (Exception ignored) {
+      // 透明化失败不影响启动，窗口保持品牌色兜底
+    }
+  }
+
+  /**
+   * 将 Activity 窗口背景设为透明（等价 windowBackground 透明化）。
+   * 延迟 500ms 等待 RN 根视图完成首屏渲染后切换，避免启动画面品牌色提前消失。
+   */
+  private void applyTranslucentWindow() {
+    mainHandler.postDelayed(() -> {
+      if (getWindow() != null) {
+        getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+      }
+    }, 500);
   }
 
   /**

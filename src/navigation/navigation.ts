@@ -76,7 +76,7 @@ export async function pushHomeScreen() {
                 backgroundColor: theme['c-content-background'],
               },
               layout: {
-                componentBackgroundColor: theme['c-content-background'],
+                componentBackgroundColor: 'transparent',
               },
             },
           },
@@ -141,7 +141,7 @@ export function pushPlayDetailScreen(componentId: string, skipAnimation = false)
             backgroundColor: theme['c-content-background'],
           },
           layout: {
-            componentBackgroundColor: theme['c-content-background'],
+            componentBackgroundColor: 'transparent',
           },
           animations: {
             push: skipAnimation ? {} : {
@@ -226,7 +226,7 @@ export function pushSonglistDetailScreen(componentId: string, info: ListInfoItem
             backgroundColor: theme['c-content-background'],
           },
           layout: {
-            componentBackgroundColor: theme['c-content-background'],
+            componentBackgroundColor: 'transparent',
           },
           animations: {
             push: {
@@ -359,7 +359,7 @@ export function pushCommentScreen(componentId: string) {
             backgroundColor: theme['c-content-background'],
           },
           layout: {
-            componentBackgroundColor: theme['c-content-background'],
+            componentBackgroundColor: 'transparent',
           },
           animations: {
             push: {
@@ -442,7 +442,7 @@ export function pushCommentScreen(componentId: string) {
 //             backgroundColor: theme['c-content-background'],
 //           },
 //           layout: {
-//             componentBackgroundColor: theme['c-content-background'],
+//             componentBackgroundColor: 'transparent',
 //           },
 //           animations: {
 //             push: {

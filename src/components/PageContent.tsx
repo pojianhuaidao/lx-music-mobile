@@ -65,7 +65,7 @@ export default ({ children }: Props) => {
   const themeComponent = useMemo(() => (
     <View style={{ flex: 1, overflow: 'hidden' }}>
       <ImageBackground
-        style={{ position: 'absolute', left: 0, top: 0, height: windowSize.height, width: windowSize.width, backgroundColor: theme['c-content-background'] }}
+        style={{ position: 'absolute', left: 0, top: 0, height: windowSize.height, width: windowSize.width, backgroundColor: glassBg ? 'rgba(0,0,0,0)' : theme['c-content-background'] }}
         source={theme['bg-image']}
         resizeMode="cover"
         blurRadius={glassBg ? GLASS_BLUR_RADIUS : undefined}
@@ -80,7 +80,7 @@ export default ({ children }: Props) => {
     return (
       <View style={{ flex: 1, overflow: 'hidden' }}>
         <ImageBackground
-          style={{ position: 'absolute', left: 0, top: 0, height: windowSize.height, width: windowSize.width, backgroundColor: theme['c-content-background'] }}
+          style={{ position: 'absolute', left: 0, top: 0, height: windowSize.height, width: windowSize.width, backgroundColor: glassBg ? 'rgba(0,0,0,0)' : theme['c-content-background'] }}
           source={{ uri: pic!, headers: defaultHeaders }}
           resizeMode="cover"
           blurRadius={BLUR_RADIUS}
