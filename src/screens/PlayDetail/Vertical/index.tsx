@@ -10,6 +10,7 @@ import Pic from './Pic'
 import Lyric from './Lyric'
 import { screenkeepAwake, screenUnkeepAwake } from '@/utils/nativeModules/utils'
 import commonState, { type InitState as CommonState } from '@/store/common/state'
+import { useSettingValue } from '@/store/setting/hook'
 import { createStyle } from '@/utils/tools'
 // import { useTheme } from '@/store/theme/hook'
 
@@ -30,8 +31,9 @@ const LyricPage = ({ activeIndex }: { activeIndex: number }) => {
 // global.iskeep = false
 export default memo(({ componentId }: { componentId: string }) => {
   // const theme = useTheme()
-  const [pageIndex, setPageIndex] = useState(0)
-  const showLyricRef = useRef(false)
+  const defaultShowLyric = useSettingValue('playDetail.defaultShowLyric')
+  const [pageIndex, setPageIndex] = useState(defaultShowLyric ? 1 : 0)
+  const showLyricRef = useRef(defaultShowLyric)
 
   const onPageSelected = ({ nativeEvent }: PagerViewOnPageSelectedEvent) => {
     setPageIndex(nativeEvent.position)
@@ -44,6 +46,7 @@ export default memo(({ componentId }: { componentId: string }) => {
   }
 
   useEffect(() => {
+    if (showLyricRef.current && !commonState.componentIds.comment) screenkeepAwake()
     let appstateListener = AppState.addEventListener('change', (state) => {
       switch (state) {
         case 'active':
@@ -78,6 +81,7 @@ export default memo(({ componentId }: { componentId: string }) => {
           onPageSelected={onPageSelected}
           // onPageScrollStateChanged={onPageScrollStateChanged}
           style={styles.pagerView}
+          initialPage={defaultShowLyric ? 1 : 0}
         >
           <View collapsable={false}>
             <Pic componentId={componentId} />

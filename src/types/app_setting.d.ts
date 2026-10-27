@@ -247,6 +247,11 @@ declare global {
       'playDetail.isShowLyricProgressSetting': boolean
 
       /**
+       * 打开播放详情页后默认显示歌词页（关闭则默认显示封面）
+       */
+      'playDetail.defaultShowLyric': boolean
+
+      /**
        * 是否启用桌面歌词
        */
       'desktopLyric.enable': boolean
