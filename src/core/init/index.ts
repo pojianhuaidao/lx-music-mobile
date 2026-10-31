@@ -106,7 +106,9 @@ export default async() => {
   // 搜索/取歌词/取图等音乐功能前有 global.lx.apiInitPromise 等待音源就绪，首屏提前显示后有兜底
   void initUserApiAndApiSource(setting)
   void initDownloadBackground(setting)
-  void initLocalMusic()
+  void initLocalMusic().catch((err) => {
+    console.error('[initLocalMusic] failed', err)
+  })
 
   // syncSetting()
 

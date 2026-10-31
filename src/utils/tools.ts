@@ -545,7 +545,13 @@ export const toMD5 = stringMd5
 
 
 export const cheatTip = async() => {
-  const isRead = await getData<boolean>(storageDataPrefix.cheatTip)
+  let isRead: boolean | null = false
+  try {
+    isRead = await getData<boolean>(storageDataPrefix.cheatTip)
+  } catch (err) {
+    // 读取失败按未读过处理，避免存储脏数据升级为全局异常
+    console.error('[cheatTip] getData failed', err)
+  }
   if (isRead) return
 
   return tipDialog({
@@ -561,7 +567,13 @@ export const cheatTip = async() => {
 }
 
 export const remoteLyricTip = async() => {
-  const isRead = await getData<boolean>(storageDataPrefix.remoteLyricTip)
+  let isRead: boolean | null = false
+  try {
+    isRead = await getData<boolean>(storageDataPrefix.remoteLyricTip)
+  } catch (err) {
+    // 读取失败按未读过处理，避免存储脏数据升级为全局异常
+    console.error('[remoteLyricTip] getData failed', err)
+  }
   if (isRead) return
 
   return tipDialog({

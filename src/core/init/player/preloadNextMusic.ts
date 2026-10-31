@@ -19,20 +19,26 @@ const preloadNextMusicUrl = async(curTime: number) => {
   if (preloadMusicInfo.isLoading || curTime - preloadMusicInfo.preProgress < 3) return
   preloadMusicInfo.isLoading = true
   console.log('preload next music url')
-  const info = await getNextPlayMusicInfo()
-  if (info) {
-    preloadMusicInfo.info = info
-    const url = await getMusicUrl({ musicInfo: info.musicInfo }).catch(() => '')
-    if (url) {
-      console.log('preload url', url)
-      const [cached, available] = await Promise.all([isCached(url), checkUrl(url).then(() => true).catch(() => false)])
-      if (!cached && !available) {
-        const url = await getMusicUrl({ musicInfo: info.musicInfo, isRefresh: true }).catch(() => '')
-        console.log('preload url refresh', url)
+  try {
+    const info = await getNextPlayMusicInfo()
+    if (info) {
+      preloadMusicInfo.info = info
+      const url = await getMusicUrl({ musicInfo: info.musicInfo }).catch(() => '')
+      if (url) {
+        console.log('preload url', url)
+        const [cached, available] = await Promise.all([isCached(url), checkUrl(url).then(() => true).catch(() => false)])
+        if (!cached && !available) {
+          const url = await getMusicUrl({ musicInfo: info.musicInfo, isRefresh: true }).catch(() => '')
+          console.log('preload url refresh', url)
+        }
       }
     }
+  } catch (err) {
+    // 预加载失败仅记录日志，不升级为全局异常，同时确保 isLoading 复位
+    console.error('[preloadNextMusicUrl] failed', err)
+  } finally {
+    preloadMusicInfo.isLoading = false
   }
-  preloadMusicInfo.isLoading = false
 }
 
 export default () => {

@@ -16,6 +16,8 @@ const delaySavePlayInfo = throttleBackgroundTimer(() => {
     maxTime: playerState.progress.maxPlayTime,
     listId: playerState.playMusicInfo.listId!,
     index: playerState.playInfo.playIndex,
+  }).catch((err) => {
+    console.error('[savePlayInfo] failed', err)
   })
 }, 2000)
 
@@ -123,6 +125,8 @@ export default () => {
         maxTime: playerState.progress.maxPlayTime,
         listId: playerState.playMusicInfo.listId!,
         index: playerState.playInfo.playIndex,
+      }).catch((err) => {
+        console.error('[savePlayInfo] failed', err)
       })
     }
   }

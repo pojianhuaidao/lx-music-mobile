@@ -58,7 +58,9 @@ void Promise.all([getFontSize(), windowSizeTools.init()]).then(async([fontSize])
     if (!handlePushedHomeScreen) return
 
     await navigations.pushHomeScreen().then(() => {
-      void handlePushedHomeScreen()
+      Promise.resolve(handlePushedHomeScreen()).catch((err: any) => {
+        console.error('[handlePushedHomeScreen] failed', err)
+      })
     }).catch((err: any) => {
       void tipDialog({
         title: 'Error',
