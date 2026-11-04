@@ -52,10 +52,19 @@ export const httpGet = (url, options, callback) => {
     options = {}
   }
   const requestObj = fetchData(url, { ...options, method: 'get' })
+  let settled = false
   requestObj.request.then(resp => {
+    settled = true
     callback(null, resp, resp.body)
   }).catch(err => {
     // debugRequest && console.log(JSON.stringify(err))
+    // callback 内部抛出的异常也会落入本 catch，若不判断 settled 会导致 callback 被二次调用
+    // （此时 resp 为 null，业务层访问 resp.statusCode 会再次抛错），因此这里必须拦截。
+    if (settled) {
+      console.error('[httpGet] callback threw:', err?.message)
+      return
+    }
+    settled = true
     callback(err, null, null)
   })
 

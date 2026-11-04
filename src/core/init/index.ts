@@ -104,11 +104,10 @@ export default async() => {
   // === 首屏前 critical path 完成，以下后台段注水（不阻塞 pushHomeScreen）===
   // 音源初始化 + apiSource 校验/设置：后续 init 段与首屏渲染均不依赖音源，
   // 搜索/取歌词/取图等音乐功能前有 global.lx.apiInitPromise 等待音源就绪，首屏提前显示后有兜底
-  void initUserApiAndApiSource(setting)
-  void initDownloadBackground(setting)
-  void initLocalMusic().catch((err) => {
-    console.error('[initLocalMusic] failed', err)
-  })
+  // 后台阶段的异常全部就地兜底，避免 Promise rejection 逃逸成全局错误
+  void initUserApiAndApiSource(setting).catch(err => { console.error('init user api failed', err) })
+  void initDownloadBackground(setting).catch(err => { console.error('init download failed', err) })
+  void initLocalMusic().catch(err => { console.error('init local music failed', err) })
 
   // syncSetting()
 

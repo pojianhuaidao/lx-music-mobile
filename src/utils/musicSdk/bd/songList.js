@@ -1,6 +1,8 @@
 import { httpFetch } from '../../request'
 import { formatPlayTime, toMD5 } from '../../index'
 import CryptoJS from 'crypto-js'
+import { safeParse } from '../safeParse'
+import { log } from '../../log'
 
 export default {
   _requestObj_tags: null,
@@ -53,17 +55,23 @@ export default {
         return jsonObj
       },
       parse(jsonStr) {
-        let jsonObj = JSON.parse(jsonStr)
-        let cipherParams = CryptoJS.lib.CipherParams.create({
-          ciphertext: CryptoJS.enc.Base64.parse(jsonObj.ct),
-        })
-        if (jsonObj.iv) {
-          cipherParams.iv = CryptoJS.enc.Hex.parse(jsonObj.iv)
+        try {
+          let jsonObj = safeParse(jsonStr, null, 'bd/songList JsonFormatter.parse')
+          if (!jsonObj) return CryptoJS.lib.CipherParams.create({ ciphertext: CryptoJS.enc.Base64.parse('') })
+          let cipherParams = CryptoJS.lib.CipherParams.create({
+            ciphertext: CryptoJS.enc.Base64.parse(jsonObj.ct),
+          })
+          if (jsonObj.iv) {
+            cipherParams.iv = CryptoJS.enc.Hex.parse(jsonObj.iv)
+          }
+          if (jsonObj.s) {
+            cipherParams.salt = CryptoJS.enc.Hex.parse(jsonObj.s)
+          }
+          return cipherParams
+        } catch (err) {
+          log.error('bd/songList JsonFormatter.parse failed:', err)
+          return CryptoJS.lib.CipherParams.create({ ciphertext: CryptoJS.enc.Base64.parse('') })
         }
-        if (jsonObj.s) {
-          cipherParams.salt = CryptoJS.enc.Hex.parse(jsonObj.s)
-        }
-        return cipherParams
       },
     }
     let encrypted = CryptoJS.AES.encrypt(strData, key, {

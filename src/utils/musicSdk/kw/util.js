@@ -2,6 +2,7 @@
 // import { httpGet, httpFetch } from '../../request'
 import { toMD5 } from '../utils'
 import { aesEncryptSync, aesDecryptSync, AES_MODE } from '@/utils/nativeModules/crypto'
+import { safeParse } from '../safeParse'
 export { default as decodeLyric } from './decodeLyric'
 
 // const kw_token = {
@@ -31,7 +32,7 @@ export { default as decodeLyric } from './decodeLyric'
 // }
 
 export const objStr2JSON = str => {
-  return JSON.parse(str.replace(/('(?=(,\s*')))|('(?=:))|((?<=([:,]\s*))')|((?<={)')|('(?=}))/g, '"'))
+  return safeParse(str.replace(/('(?=(,\s*')))|('(?=:))|((?<=([:,]\s*))')|((?<={)')|('(?=}))/g, '"'), {}, 'kw/util objStr2JSON')
 }
 
 
@@ -201,7 +202,7 @@ export const wbdCrypto = {
     // const data = Buffer.from(decodeURIComponent(base64Result), 'base64')
     // return JSON.parse(createAesDecrypt(data, this.aesMode, this.aesKey, this.aesIv).toString())
     const data = decodeURIComponent(base64Result)
-    return JSON.parse(aesDecryptSync(data, this.aesKey, this.aesIv, AES_MODE.ECB_128_NoPadding))
+    return safeParse(aesDecryptSync(data, this.aesKey, this.aesIv, AES_MODE.ECB_128_NoPadding), {}, 'kw/util wbdCrypto.decodeData')
   },
   createSign(data, time) {
     const str = `${this.appId}${data}${time}`

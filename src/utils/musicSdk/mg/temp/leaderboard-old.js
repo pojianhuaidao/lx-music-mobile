@@ -1,5 +1,6 @@
 import { httpFetch } from '../../../request'
 import { formatPlayTime } from '../../../index'
+import { safeParse } from '../../safeParse'
 // import { sizeFormate } from '../../index'
 
 
@@ -180,7 +181,7 @@ export default {
       if (statusCode !== 200) return this.getList(bangid, page, retryNum)
       let listData = body.match(this.regExps.listData)
       if (!listData) return this.getList(bangid, page, retryNum)
-      const datas = JSON.parse(RegExp.$1)
+      const datas = safeParse(RegExp.$1, { songs: { items: [], itemTotal: 0 } }, 'mg/leaderboard-old getList')
       // console.log(datas)
       listData = this.filterData(datas.songs.items)
       return {

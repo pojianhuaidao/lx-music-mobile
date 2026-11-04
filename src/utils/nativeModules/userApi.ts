@@ -80,14 +80,32 @@ export const onScriptAction = (handler: (event: ActionsEvent) => void): () => vo
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const eventEmitter = new NativeEventEmitter(UserApiModule)
   const eventListener = eventEmitter.addListener('api-action', event => {
-    if (event.data) event.data = JSON.parse(event.data as string)
-    if (event.action == 'init') {
-      if (event.data.info) event.data.info = { ...loadScriptInfo, ...event.data.info }
-      else event.data.info = { ...loadScriptInfo }
-    } else if (event.action == 'showUpdateAlert') {
-      if (!loadScriptInfo?.allowShowUpdateAlert) return
+    // 本回调运行在原生事件同步栈内，任何未被捕获的异常都会直接升级为全局错误
+    // （setJSExceptionHandler → isFatal=true → “Fatal: ...” 弹窗），而自定义音源属于
+    // 第三方脚本，其回传数据与结构均不可信（非 JSON 文本如 "ok" / "[object Object]"、
+    // HTML、被截断的分片，或 sources 结构异常）。因此这里统一做兜底隔离：
+    // 解析或处理失败时只记录日志并丢弃该事件，降级为业务层的“加载失败”提示。
+    try {
+      if (event.data) {
+        try {
+          event.data = JSON.parse(event.data as string)
+        } catch (err: any) {
+          console.error('[userApi] api-action data parse failed:', event.action,
+            String(event.data).slice(0, 300), err?.message)
+          return
+        }
+      }
+      if (event.action == 'init') {
+        if (!event.data) return
+        if (event.data.info) event.data.info = { ...loadScriptInfo, ...event.data.info }
+        else event.data.info = { ...loadScriptInfo }
+      } else if (event.action == 'showUpdateAlert') {
+        if (!loadScriptInfo?.allowShowUpdateAlert) return
+      }
+      handler(event as ActionsEvent)
+    } catch (err: any) {
+      console.error('[userApi] api-action handle failed:', event.action, err?.message)
     }
-    handler(event as ActionsEvent)
   })
 
   return () => {

@@ -1,4 +1,5 @@
 import { httpFetch } from '../../request'
+import { safeParse } from '../safeParse'
 // import { formatPlayTime } from '../../index'
 
 
@@ -123,7 +124,9 @@ export default {
   },
   parseData(rawData) {
     // return rawData.map(item => JSON.parse(item.replace(this.regExps.item, '$1').replace(/&quot;/g, '"').replace(/\\\//g, '/').replace(/(@s_1,w_)\d+(,h_)\d+/, '$1500$2500')))
-    return rawData.map(item => JSON.parse(item.replace(this.regExps.item, '$1').replace(/&quot;/g, '"').replace(/\\\//g, '/')))
+    return rawData.map(item => {
+      return safeParse(item.replace(this.regExps.item, '$1').replace(/&quot;/g, '"').replace(/\\\//g, '/'), null, 'bd/leaderboard parseData')
+    }).filter(item => item != null)
   },
   async getBoards(retryNum = 0) {
     this.list = boardList

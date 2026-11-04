@@ -3,6 +3,7 @@ import { formatSingerName } from '../../utils'
 import { decodeName, formatPlayTime, sizeFormate, dateFormat, formatPlayCount } from '../../../index'
 import { signatureParams, createHttpFetch } from './../util'
 import { getMusicInfosByList } from '../musicInfo'
+import { safeParse } from '../../safeParse'
 import album from '../album'
 
 export default {
@@ -90,7 +91,7 @@ export default {
     let listData = body.match(this.regExps.listData)
     let listInfo = body.match(this.regExps.listInfo)
     if (!listData) return this.getListDetailBySpecialId(id, page, ++tryNum)
-    let list = await getMusicInfosByList(JSON.parse(listData[1]))
+    let list = await getMusicInfosByList(safeParse(listData[1], [], 'kg/songList-new getUserListDetailBySpecialId'))
     let name
     let pic
     if (listInfo) {
@@ -592,7 +593,7 @@ export default {
     }).promise
     // console.log(body)
     let result = body.match(/var\sphpParam\s=\s({.+?});/)
-    if (result) result = JSON.parse(result[1])
+    if (result) result = safeParse(result[1], {}, 'kg/songList-new getUserListDetailByChain')
     this.cache.set(chain, result)
     return result
   },
@@ -606,7 +607,7 @@ export default {
       },
     }).promise
     let result = body.match(/var\sdataFromSmarty\s=\s(\[.+?\])/)
-    if (result) result = JSON.parse(result[1])
+    if (result) result = safeParse(result[1], [], 'kg/songList-new getUserListDetailByPcChain')
     this.cache.set(chain, result)
     result = await getMusicInfosByList(result)
     // console.log(info, songInfo)

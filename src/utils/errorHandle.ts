@@ -3,8 +3,18 @@ import { Alert } from 'react-native'
 import { setJSExceptionHandler, setNativeExceptionHandler } from 'react-native-exception-handler'
 import { log } from '@/utils/log'
 
+// 解析类异常（音源 / 网络返回非 JSON 文本，如 "ok"、"[object Object]"、HTML、被截断的分片）
+// 属于业务数据问题，不应升级为全局 Fatal 弹窗，这里仅记录日志，
+// 由对应业务模块自行提示“加载失败”，避免反复弹窗打断播放。
+const isParseError = (e: any) => {
+  if (!e) return false
+  const msg = String(e.message ?? '')
+  return (e.name === 'SyntaxError' || /SyntaxError/i.test(msg)) &&
+    /JSON|Unexpected (character|token|end)|unexpected end of/i.test(msg)
+}
+
 const errorHandler = (e: Error, isFatal: boolean) => {
-  if (isFatal) {
+  if (isFatal && !isParseError(e)) {
     Alert.alert(
       '💥Unexpected error occurred💥',
       `

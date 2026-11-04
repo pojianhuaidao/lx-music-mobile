@@ -1,6 +1,7 @@
 import { httpFetch } from '../../request'
 import { decodeLyric } from './util'
 import { decodeName } from '../../index'
+import { safeParse } from '../safeParse'
 
 const headExp = /^.*\[id:\$\w+\]\n/
 
@@ -13,7 +14,7 @@ const parseLyric = str => {
   let tlyric
   if (trans) {
     str = str.replace(/\[language:[\w=\\/+]+\]\n/, '')
-    let json = JSON.parse(Buffer.from(trans[1], 'base64').toString())
+    let json = safeParse(Buffer.from(trans[1], 'base64').toString(), { content: [] }, 'kg/lyric parseLyric')
     for (const item of json.content) {
       switch (item.type) {
         case 0:

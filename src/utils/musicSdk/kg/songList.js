@@ -2,6 +2,7 @@ import { httpFetch } from '../../request'
 import { decodeName, formatPlayTime, sizeFormate, dateFormat, formatPlayCount } from '../../index'
 import infSign from './vendors/infSign.min'
 import { signatureParams } from './util'
+import { safeParse } from '../safeParse'
 
 const handleSignature = (id, page, limit) => new Promise((resolve, reject) => {
   infSign({ appid: 1058, type: 0, module: 'playlist', page, pagesize: limit, specialid: id }, null, {
@@ -118,7 +119,7 @@ export default {
     let listData = body.match(this.regExps.listData)
     let listInfo = body.match(this.regExps.listInfo)
     if (!listData) return this.getListDetailBySpecialId(id, page, ++tryNum)
-    let list = await this.getMusicInfos(JSON.parse(listData[1]))
+    let list = await this.getMusicInfos(safeParse(listData[1], [], 'kg/songList getListDetailBySpecialId'))
     // listData = this.filterData(JSON.parse(listData[1]))
     let name
     let pic
@@ -536,7 +537,7 @@ export default {
       },
     }).promise
     let result = body.match(/var\sphpParam\s=\s({.+?});/)
-    if (result) result = JSON.parse(result[1])
+    if (result) result = safeParse(result[1], {}, 'kg/songList getListInfoByChain')
     this.cache.set(chain, result)
     return result
   },
@@ -550,7 +551,7 @@ export default {
       },
     }).promise
     let result = body.match(/var\sdataFromSmarty\s=\s(\[.+?\])/)
-    if (result) result = JSON.parse(result[1])
+    if (result) result = safeParse(result[1], [], 'kg/songList getUserListDetailByPcChain')
     this.cache.set(chain, result)
     result = await this.getMusicInfos(result)
     // console.log(info, songInfo)
