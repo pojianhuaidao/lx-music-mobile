@@ -9,6 +9,16 @@ const MAX_USER_API = 40
 const ASSET_DIR = 'lx-builtin-user-api'
 
 /**
+ * 内置音源注入总开关（2026-11-14 起默认关闭）。
+ * - 关闭后 seedBuiltinUserApis 直接返回现有列表，不做任何注入、去重与残留清理，
+ *   APK 内不含任何内置音源脚本，用户自建音源与远程默认源不受影响；
+ * - 音源源文件已移出打包目录，改为仓库根目录 `builtin-user-api/`（不打进 APK），
+ *   便于日后恢复：将其移回 android/app/src/main/assets/lx-builtin-user-api/ 后，
+ *   将本开关改为 true 即可恢复原有注入行为（注册表 BUILTIN_USER_APIS 保持完整）。
+ */
+const ENABLE_BUILTIN_USER_APIS: boolean = false
+
+/**
  * 内置音源注册表（2026-10-07 更新：集成 36 个用户音源）。
  * - qdy/sixyin/flower/grass 四个条目为同名替换：资产文件内容已更新为
  *   用户提供的最新版（全豆要[聚合音源]/六音音源/野花🌷/野草🌾），id/file 保持不变；
@@ -103,6 +113,8 @@ const normalizeName = (s: string): string =>
 export const seedBuiltinUserApis = async(): Promise<LX.UserApi.UserApiInfo[]> => {
   const list = await getUserApiList()
   if (Platform.OS !== 'android') return list
+  // 内置音源注入已关闭：APK 不再内联任何音源脚本，直接返回现有列表
+  if (!ENABLE_BUILTIN_USER_APIS) return list
 
   // === 清理已移除内置源在旧版升级设备上的残留注入项 ===
   // 注入项存储 id 为 user_api_xxx 随机 id，无法按内置固定 id 直接匹配。

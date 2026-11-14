@@ -132,7 +132,8 @@ android {
         abi {
             reset()
             enable enableSeparateBuildPerCPUArchitecture
-            universalApk true  // If true, also generate a universal APK
+            // 不生成 universal 包：仅产出按 ABI 拆分的单架构 APK（当前构建目标为 arm64-v8a）
+            universalApk false
             include (*reactNativeArchitectures())
         }
     }

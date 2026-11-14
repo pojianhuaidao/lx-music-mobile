@@ -4,6 +4,7 @@ description: Setup Env
 runs:
   using: composite
   steps:
+    # 仅发布 arm64-v8a 单架构包（universal 包已取消构建与上传）
     - name: Upload Artifact arm64-v8a
       if: env.PACKAGE_TYPE != 'Android_5'
       uses: actions/upload-artifact@v4
@@ -17,13 +18,7 @@ runs:
       with:
         name: app-v${{ env.PACKAGE_VERSION }}-armeabi-v7a-release
         path: android/app/build/outputs/apk/release/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-armeabi-v7a.apk
-
-    - name: Upload Artifact universal
-      if: env.PACKAGE_TYPE != 'Android_SL'
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-v${{ env.PACKAGE_VERSION }}-universal-release
-        path: android/app/build/outputs/apk/release/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-universal.apk
+        if-no-files-found: ignore
 
     - name: Upload Artifact x86_64
       if: env.PACKAGE_TYPE == null
@@ -31,6 +26,7 @@ runs:
       with:
         name: app-v${{ env.PACKAGE_VERSION }}-x86_64-release
         path: android/app/build/outputs/apk/release/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-x86_64.apk
+        if-no-files-found: ignore
 
     - name: Upload Artifact x86
       if: env.PACKAGE_TYPE == null
@@ -38,3 +34,4 @@ runs:
       with:
         name: app-v${{ env.PACKAGE_VERSION }}-x86-release
         path: android/app/build/outputs/apk/release/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-x86.apk
+        if-no-files-found: ignore

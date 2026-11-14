@@ -137,6 +137,8 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### 修改
 
+- 取消 APK 内置音源：`seedBuiltin.ts` 新增总开关 `ENABLE_BUILTIN_USER_APIS`（默认 false），关闭后启动不再注入任何音源，也不执行内置源的去重与残留清理；同时将音源脚本移出打包目录（`android/app/src/main/assets/lx-builtin-user-api` → 仓库根目录 `builtin-user-api`），确保安装包内不含任何内置音源脚本；`BUILTIN_USER_APIS` 注册表与全部源文件均保留，恢复注入只需将目录移回 assets 并打开开关。用户自建音源、远程默认音源机制不受影响
+- 仅发布 arm64-v8a 单架构包：`android/app/build.gradle` 关闭 `universalApk`，CI 产物上传步骤移除 universal 条目（其余未构建的 ABI 步骤标记 `if-no-files-found: ignore`），Release 仅挂载 arm64-v8a APK
 - 内置音源更新：assets/lx-builtin-user-api 集成 36 个用户音源（4 个同名替换：全豆要[聚合音源]/六音音源/野花🌷/野草🌾；32 个新增注册），原内置 huibq 源保留共存；`seedBuiltin.ts` BUILTIN_USER_APIS 同步扩展至 37 条，同步移除 REMOVED_BUILTIN_USER_APIS 中已重新集成的 juhe/ikun/lx 清理条目，避免启动时误清新注入项；同名替换源（已 seeded 设备）按「同名即重复、以新文件为准」删除旧内容并取消 seeded 重新注入新版；MAX_USER_API 由 20 提升至 40 以容纳新增内置源
 
 ## [1.9.7](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.6...v1.9.7) - 2026-10-04
