@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+﻿import { useEffect, useRef } from 'react'
 import { View } from 'react-native'
 import { createStyle, toast } from '@/utils/tools'
 
@@ -14,6 +14,7 @@ import BoardsList, { type BoardsListType, type BoardsListProps } from '../Boards
 import type { InitState as CommonState } from '@/store/common/state'
 import settingState from '@/store/setting/state'
 import { getBoardsList } from '@/core/leaderboard'
+import { useNetRetryRefresh } from '@/utils/useNetRetryRefresh'
 import { playRecommendList } from '@/core/recommend'
 import { COMPONENT_IDS } from '@/config/constant'
 import { handleCollect, handlePlay } from '../listAction'
@@ -90,6 +91,21 @@ export default () => {
       })
     })
   }
+
+  const reloadBoardsRef = useRef<() => void>(() => {})
+  reloadBoardsRef.current = () => {
+    const { source, id } = boundInfo.current
+    if (!source) return
+    void getBoardsList(source).then(list => {
+      if (!list.length) return
+      const boundId = id ?? list[0].id
+      const bound = list.find(l => l.id == boundId)
+      boardsListRef.current?.setList(list, boundId)
+      headerBarRef.current?.setBound(source, boundId, bound?.name ?? 'Unknown')
+    }).catch(() => {})
+  }
+  // 网络恢复后自动补齐排行榜列表与当前榜单内容
+  useNetRetryRefresh(['boards__'], () => reloadBoardsRef.current())
 
   const navigationView = () => {
     return (

@@ -99,6 +99,12 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### 修复
 
+- 修复播放详情歌词页歌词不滚动、长期停在首屏行的问题：根因是 `Vertical/Lyric.tsx` 的 `handleScrollToActive` 用「行高数组累加」计算滚动目标 offset，而 `lineHeights` 由 `onLayout` 异步测量填充，测量未完成或列表虚拟化回收时存在空洞（`undefined`），累加结果为 `NaN`，`scrollToOffset({ offset: NaN })` 不报错也不滚动，且没有任何降级或自愈路径。现改为累加前逐项 `Number.isFinite` 判空，任意空洞即整体降级为 `scrollToIndex`（依赖新增的 `getItemLayout` 用 `defaultLineHeight` 估算行高兜底）；`scrollTo` 抛错或目标非有限值时同样降级；新增 `getItemLayout`、`initialNumToRender` 固定为常量 `LYRIC_INITIAL_NUM_TO_RENDER = 20`，避免原「绑定播放行号」的渲染窗口随切行抖动导致行高测量错位
+- 修复手动拖动歌词浏览后自动滚动永不恢复（需切歌才恢复）的问题：`isPauseScrollRef` 原先只在 `onScrollEndDrag` 复位，该事件在快速滑动、惯性滚动、系统打断等场景可能丢失，一旦丢失即永久停留在「手动浏览」态，不再跟随播放行。现新增 `onMomentumScrollEnd` 复位路径，并在 `handleScrollBeginDrag` 启动 8s 看门狗（`LYRIC_SCROLL_PAUSE_WATCHDOG`，拖动中每 2s 限流续期），无论事件是否丢失，8s 后都强制恢复自动滚动并对齐当前播放行；切歌、换歌词时同步清理看门狗与恢复定时器
+- 修复歌词滚动动画在锁冲突时被静默丢弃的问题：`src/utils/scroll.ts` 在滚动锁被占用时调用 `clean()` 杀掉正在进行的动画定时器后直接返回，本次新滚动目标被丢弃，表现为歌词卡在当前行不再跟随。现改为锁冲突时先 `clean()` 再立即按新目标重新排队执行；入口对 `offset` / `maxScrollTop` 增加有限值防御，非法值记录告警后跳过，避免 `NaN` 再次进入动画链路
+- 修复 seek（拖动进度条）或从后台恢复播放后歌词时间轴不重建、歌词行与实际播放位置错位的问题：原先跳转仅更新播放进度，未重建歌词时间轴。现 `src/core/lyric.ts` 新增导出 `resync()`（内部按当前 `getPosition()` 重建时间轴），`src/core/init/player/playProgress.ts` 在 `setProgress` 完成 `setCurrentTime` 后调用 `resyncLyric()`，使歌词行与最新进度对齐
+- 修复 `gettingUrlId`（取播放链接）期间 `Playing` 事件被丢弃导致歌词状态不恢复的问题：`src/plugins/player/service.ts` 放行 `TPState.Playing` 事件，避免该窗口期内播放状态与歌词滚动不同步
+- 修复桌面歌词与播放行入口缺少异常兜底的问题：`src/core/lyric.ts` 的 `setDesktopLyric` / `playDesktopLyric` 补 `try-catch`，`Lyric.tsx` 的 `handlePlay` 入口对非有限行号直接丢弃，避免异常逃逸为全局未捕获错误
 - 修复语音引擎启动即红屏崩溃的问题：`java.lang.NullPointerException ... KeywordSpotter.createStream(String) on a null object reference`（堆栈 `cn.toside.music.mobile.voice.a.d`，崩溃于后台采集线程）。根因是 ACTION_START 在异步 ensureEngineInit() 完成前无条件调用 startListening()，采集线程启动时 spotter 尚未创建（null），createStream 直接 NPE 崩后台线程触发 RN 红屏；现改为引擎就绪后同步启动、未就绪则由 init 成功回调统一启动，消除时序竞争
 - 新增引擎判空防御：startListening 与采集循环中 spotter 为 null 时不再调用 createStream，改为通过 onError 上报具体原因（初始化未完成 / 初始化失败透传 lastInitError / 重建失败透传异常类型与消息），避免后台线程崩溃
 - 新增 createStream 返回空流防御：keyword token 解析失败（OOV）时 createStream 返回 null，现检测后安全退出并上报，避免随后 acceptWaveform 触发二次 NPE

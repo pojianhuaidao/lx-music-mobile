@@ -95,7 +95,10 @@ const registerPlaybackService = async() => {
 
   TrackPlayer.addEventListener(TPEvent.PlaybackState, async info => {
     try {
-      if (global.lx.gettingUrlId || isTempId()) return
+      // 获取音频 URL 期间（gettingUrlId）以及临时音源状态下的中间态会污染播放状态，需要过滤。
+      // 但 Playing 是歌词时间轴启动所必需的关键事件，必须放行：否则「边取 URL 边恢复播放」
+      // 的链路下 Playing 被丢弃，歌词不会启动/重建时钟，表现为播放中歌词不滚动。
+      if (info.state !== TPState.Playing && (global.lx.gettingUrlId || isTempId())) return
       // let currentIsPlaying = false
 
       switch (info.state) {

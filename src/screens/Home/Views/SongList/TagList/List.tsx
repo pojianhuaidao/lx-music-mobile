@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react'
+﻿import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react'
 import { View, ScrollView } from 'react-native'
 
 import { createStyle } from '@/utils/tools'
@@ -6,6 +6,7 @@ import TagGroup, { type TagGroupProps } from './TagGroup'
 import { useI18n } from '@/lang'
 import { type TagInfo, type Source } from '@/store/songlist/state'
 import { getTags } from '@/core/songlist'
+import { useNetRetryRefresh } from '@/utils/useNetRetryRefresh'
 import Text from '@/components/common/Text'
 // import { BorderWidths } from '@/theme'
 
@@ -45,10 +46,30 @@ export default forwardRef<ListType, ListProps>(({ onTagChange }, ref) => {
             { name: t('songlist_tag_hot'), list: [...tagInfo.hotTag] },
             ...tagInfo.tags,
           ].filter(t => t.list.length))
+        }).catch((err: unknown) => {
+          // 车机开机网络空档期：静默失败，等 netRetry 网络恢复后自动重新加载
+          console.warn('[songlist] 标签加载失败', err)
         })
       }
     },
   }))
+
+  const loadTagRef = useRef<(() => void) | null>(null)
+  loadTagRef.current = () => {
+    const source = prevSource.current
+    if (!source) return
+    // 强制重新拉取标签（netRetry 已把新数据落库，这里清掉内存态后重载）
+    void getTags(source).then(tagInfo => {
+      if (isUnmountedRef.current) return
+      setList([
+        { name: '', list: [{ name: t('songlist_tag_default'), id: '', parent_id: '', parent_name: '', source }] },
+        { name: t('songlist_tag_hot'), list: [...tagInfo.hotTag] },
+        ...tagInfo.tags,
+      ].filter(t => t.list.length))
+    }).catch(() => {})
+  }
+  // 网络恢复后自动补齐标签栏
+  useNetRetryRefresh(['tags__'], () => loadTagRef.current?.())
 
 
   return (

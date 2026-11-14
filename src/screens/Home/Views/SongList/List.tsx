@@ -3,6 +3,7 @@ import Songlist, { type SonglistProps, type SonglistType } from './components/So
 import { clearList, getList, setList, setListInfo } from '@/core/songlist'
 import songlistState from '@/store/songlist/state'
 import { type Source } from '@/store/songlist/state'
+import { useNetRetryRefresh } from '@/utils/useNetRetryRefresh'
 
 
 export interface ListType {
@@ -73,6 +74,15 @@ export default forwardRef<ListType, {}>((props, ref) => {
       listRef.current?.setStatus('error')
     })
   }
+
+  const handleRefreshRef = useRef(handleRefresh)
+  handleRefreshRef.current = handleRefresh
+  // 车机开机网络空档期请求失败后，网络一恢复就静默重拉，用户无需手动点重试
+  useNetRetryRefresh(['slist__'], () => {
+    if (isUnmountedRef.current) return
+    if (!songlistState.listInfo.source) return
+    handleRefreshRef.current()
+  })
 
   return <Songlist
     ref={listRef}

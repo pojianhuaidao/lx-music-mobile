@@ -1,31 +1,40 @@
 import { AppState, DeviceEventEmitter } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import commonState from '@/store/common/state'
-import { COMPONENT_IDS } from '@/config/constant'
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 /**
- * 刷新当前 RNN 界面：向已注册的屏幕下发 refreshTick 触发组件重渲染，
- * 修复系统强制小窗/后台恢复时界面停留在空白或旧状态的问题。
+ * 刷新当前 RNN 界面：向所有已挂载的屏幕下发 refreshTick 触发组件重渲染，
+ * 修复系统强制小窗/画中画恢复时界面停留在旧画面（画面不跟随）的问题。
+ *
+ * 注意：必须遍历所有已注册的屏幕，而不是只取第一个命中的。
+ * RNN 栈里 home 通常常驻，只刷它会导致用户当前真正在看的
+ * 播放详情页/歌单详情页/设置页得不到刷新，画面停留在小窗里的旧帧。
  */
 const refreshCurrentScreen = () => {
   // 短时间内的多次触发合并为一次，避免频繁重渲染
   if (refreshTimer) return
   refreshTimer = setTimeout(() => {
     refreshTimer = null
-    // 优先刷新当前可见的栈顶组件，避免刷新栈底引发布局/重绘竞争导致界面横跳
-    const componentId = commonState.componentIds[COMPONENT_IDS.playDetail]
-      ?? commonState.componentIds[COMPONENT_IDS.songlistDetail]
-      ?? commonState.componentIds[COMPONENT_IDS.comment]
-      ?? commonState.componentIds[COMPONENT_IDS.home]
-    if (componentId) Navigation.updateProps(componentId, { refreshTick: Date.now() })
+    const tick = Date.now()
+    const ids = Object.values(commonState.componentIds).filter(Boolean) as string[]
+    if (!ids.length) return
+    for (const componentId of ids) {
+      try {
+        Navigation.updateProps(componentId, { refreshTick: tick })
+      } catch {
+        // 组件可能已销毁，忽略
+      }
+    }
+    // 兜底：通知需要自行刷新数据的列表页（歌单/排行榜等）
+    DeviceEventEmitter.emit('lxMusicUiRefresh', tick)
   }, 400)
 }
 
 /**
  * 监听前台恢复刷新事件：
- * - native 事件：MainActivity 在 onNewIntent / 退出多窗口小窗时发送 lxMusicRefresh
+ * - native 事件：MainActivity 在 onNewIntent / 进出多窗口小窗时发送 lxMusicRefresh
  * - AppState 兜底：回到前台 active 时同样触发刷新
  */
 export const listenRefreshEvent = () => {
@@ -34,3 +43,5 @@ export const listenRefreshEvent = () => {
     if (state === 'active') refreshCurrentScreen()
   })
 }
+
+export { refreshCurrentScreen }

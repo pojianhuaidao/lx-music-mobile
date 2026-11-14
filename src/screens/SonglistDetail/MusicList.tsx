@@ -5,6 +5,7 @@ import songlistState from '@/store/songlist/state'
 import { handlePlay } from './listAction'
 import Header, { type HeaderType } from './Header'
 import { useListInfo } from './state'
+import { useNetRetryRefresh } from '@/utils/useNetRetryRefresh'
 
 export interface MusicListProps {
   componentId: string
@@ -111,6 +112,15 @@ export default forwardRef<MusicListType, MusicListProps>(({ componentId }, ref) 
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const header = useMemo(() => <Header ref={headerRef} componentId={componentId} />, [])
+
+  const handleRefreshRef = useRef(handleRefresh)
+  handleRefreshRef.current = handleRefresh
+  // 车机开机网络空档期请求失败后，网络一恢复就静默重拉歌单内容
+  useNetRetryRefresh(['sdetail'], () => {
+    if (isUnmountedRef.current) return
+    if (!songlistState.listDetailInfo.id) return
+    handleRefreshRef.current()
+  })
 
   return <OnlineList
     ref={listRef}

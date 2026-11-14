@@ -1,8 +1,9 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+﻿import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import OnlineList, { type OnlineListType, type OnlineListProps } from '@/components/OnlineList'
 import { clearListDetail, getListDetail, setListDetail, setListDetailInfo } from '@/core/leaderboard'
 import boardState from '@/store/leaderboard/state'
 import { handlePlay } from './listAction'
+import { useNetRetryRefresh } from '@/utils/useNetRetryRefresh'
 
 // export type MusicListProps = Pick<OnlineListProps,
 // 'onLoadMore'
@@ -83,6 +84,15 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
       listRef.current?.setStatus('error')
     })
   }
+
+  const handleRefreshRef = useRef(handleRefresh)
+  handleRefreshRef.current = handleRefresh
+  // 车机开机网络空档期请求失败后，网络一恢复就静默重拉榜单内容
+  useNetRetryRefresh(['bdlist'], () => {
+    if (isUnmountedRef.current) return
+    if (!boardState.listDetailInfo.id) return
+    handleRefreshRef.current()
+  })
 
   return <OnlineList
     ref={listRef}

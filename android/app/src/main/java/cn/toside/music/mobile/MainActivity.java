@@ -15,6 +15,9 @@ public class MainActivity extends NavigationActivity {
 
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+  // 首次 onResume 属于正常启动，不参与补刷（避免首帧多做一次图层重建）
+  private boolean isFirstResume = true;
+
   /**
    * 统一延迟补刷：同一次前台恢复中 onNewIntent / onMultiWindowModeChanged 可能接连触发，
    * 先 removeCallbacks 合并为一次，配合 JS 层 refreshOnForeground 防抖，避免两次刷新导致
@@ -72,26 +75,68 @@ public class MainActivity extends NavigationActivity {
   public void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     if (intent == null) return;
+    scheduleDelayedRefresh();
+  }
+
+  /**
+   * 多窗口模式切换（含车机 ROM 强制小窗/画中画）时强制刷新 RN 根视图。
+   * 进入与退出两个方向都要刷新：进入小窗时系统会把 Activity 的可见区域改为小窗，
+   * 若此时不重绘，小窗里会继续显示上一次的旧画面（画面不跟随当前页面）；
+   * 退出小窗回到全屏同理。与 onNewIntent 共用延迟补刷通道，防止连续触发时重复刷新。
+   */
+  @Override
+  public void onMultiWindowModeChanged(boolean isInMultiWindowMode, Configuration newConfig) {
+    super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig);
+    scheduleDelayedRefresh();
+  }
+
+  /**
+   * 标准画中画状态回调（部分车机 ROM 走这条通道而不是 onMultiWindowModeChanged）。
+   * 进/出 PIP 都补刷一次，保证小窗画面与全屏内容一致。
+   */
+  @Override
+  public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
+    super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
+    scheduleDelayedRefresh();
+  }
+
+  /**
+   * 回到前台：部分 ROM 小窗恢复只走 onResume，不触发多窗口回调，
+   * 这里同样补刷，避免小窗停留在进入全屏前的旧画面。
+   */
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (isFirstResume) {
+      isFirstResume = false;
+      return;
+    }
+    scheduleDelayedRefresh();
+  }
+
+  /**
+   * 小窗↔全屏切换会带来屏幕尺寸/方向变化，RN 需要重新按新尺寸布局并重绘，
+   * 否则窗口 Surface 上仍是旧尺寸的那一帧（画面不跟随）。
+   */
+  @Override
+  public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    scheduleDelayedRefresh();
+  }
+
+  /**
+   * 统一延迟补刷入口：同一批生命周期回调只保留最后一次，避免多次重绘造成闪烁。
+   */
+  private void scheduleDelayedRefresh() {
     mainHandler.removeCallbacks(delayedRefreshRunnable);
     mainHandler.postDelayed(delayedRefreshRunnable, 500);
   }
 
   /**
-   * 退出多窗口/媒体小窗时同样强制刷新 RN 根视图，避免界面停留在小窗尺寸/空白状态；
-   * 与 onNewIntent 共用延迟补刷通道，防止连续触发时重复刷新。
-   */
-  @Override
-  public void onMultiWindowModeChanged(boolean isInMultiWindowMode, Configuration newConfig) {
-    super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig);
-    if (!isInMultiWindowMode) {
-      mainHandler.removeCallbacks(delayedRefreshRunnable);
-      mainHandler.postDelayed(delayedRefreshRunnable, 500);
-    }
-  }
-
-  /**
    * 通过 ReactContext.emitDeviceEvent 向 JS 层发送 "lxMusicRefresh" 事件，
-   * JS 层在 src/navigation/refreshOnForeground.ts 中监听并刷新当前界面。
+   * JS 层在 src/navigation/refreshOnForeground.ts 中监听并刷新当前界面；
+   * 同时强制根视图重新布局与重绘，让窗口 Surface 立刻提交新帧，
+   * 避免系统小窗缓存旧画面。
    */
   private void refreshReactRootView() {
     try {
@@ -104,6 +149,46 @@ public class MainActivity extends NavigationActivity {
       }
     } catch (Exception ignored) {
       // 刷新失败不影响 Activity 生命周期，下次前台/NewIntent 会再次尝试
+    }
+    forceRedrawRootView();
+  }
+
+  /**
+   * 强制窗口内容重新测量、布局并绘制一次，触发 Surface 提交新帧。
+   * 车机 ROM 的小窗会缓存上一帧画面，仅 requestLayout/invalidate 在部分机型上
+   * 不足以让小窗刷新，这里额外重建一次根容器图层，丢弃系统缓存的旧帧。
+   */
+  private void forceRedrawRootView() {
+    try {
+      if (getWindow() == null) return;
+      final android.view.View decorView = getWindow().getDecorView();
+      if (decorView != null) {
+        decorView.requestLayout();
+        decorView.invalidate();
+        decorView.postInvalidateOnAnimation();
+      }
+      final android.view.View contentView = findViewById(android.R.id.content);
+      if (contentView != null) {
+        contentView.requestLayout();
+        contentView.invalidate();
+        contentView.post(() -> {
+          try {
+            if (!contentView.isAttachedToWindow()) return;
+            contentView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
+            contentView.post(() -> {
+              try {
+                contentView.setLayerType(android.view.View.LAYER_TYPE_NONE, null);
+              } catch (Exception ignored) {
+                // 恢复默认图层失败不影响已提交的画面
+              }
+            });
+          } catch (Exception ignored) {
+            // 图层重建失败时保持上面已触发的普通重绘
+          }
+        });
+      }
+    } catch (Exception ignored) {
+      // 重绘失败不影响业务逻辑
     }
   }
 }

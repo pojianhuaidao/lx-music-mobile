@@ -1,4 +1,4 @@
-import '@/utils/errorHandle'
+﻿import '@/utils/errorHandle'
 import { init as initLog } from '@/utils/log'
 import { bootLog, getBootLog } from '@/utils/bootLog'
 import '@/config/globalData'
@@ -7,6 +7,7 @@ import { exitApp } from './utils/nativeModules/utils'
 import { windowSizeTools } from './utils/windowSizeTools'
 import { listenLaunchEvent } from './navigation/regLaunchedEvent'
 import { listenRefreshEvent } from './navigation/refreshOnForeground'
+import { startOfflinePreload } from './core/preload'
 import { tipDialog } from './utils/tools'
 
 console.log('starting app...')
@@ -54,6 +55,8 @@ void Promise.all([getFontSize(), windowSizeTools.init()]).then(async([fontSize])
 
   initNavigation(async() => {
     await handleInit()
+    // 初始化完成后启动离线缓存预加载（进入后台/熄火前预取，供下次开机网络空档期使用）
+    if (isInited) startOfflinePreload()
     // 初始化失败时 handlePushedHomeScreen 未赋值，直接退出（错误提示已在 handleInit 内处理）
     if (!handlePushedHomeScreen) return
 

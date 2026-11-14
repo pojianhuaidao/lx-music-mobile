@@ -2,6 +2,8 @@ import songlistState, { type TagInfo, type ListDetailInfo, type ListInfo } from 
 import songlistActions from '@/store/songlist/action'
 import { deduplicationList, toNewMusicInfo } from '@/utils'
 import musicSdk from '@/utils/musicSdk'
+import { getNetCache, saveNetCache } from './netCache'
+import { registerNetRetry } from './netRetry'
 
 
 interface DetailPageCache { data: ListDetailInfo, sourcePage: number }
@@ -19,9 +21,32 @@ const LIST_LOAD_LIMIT = 30
  */
 export const getTags = async<T extends LX.OnlineSource>(source: T) => {
   if (songlistState.tags[source]) return songlistState.tags[source] as TagInfo<T>
-  const info = await (musicSdk[source]?.songList.getTags() as Promise<TagInfo<T>>)
-  songlistActions.setTags(info, source)
-  return info
+  const cacheKey = `tags__${source}`
+  const request = async(): Promise<TagInfo<T>> => {
+    const info = await (musicSdk[source]?.songList.getTags() as Promise<TagInfo<T>>)
+    if (!info) throw new Error('source not found: ' + source)
+    songlistActions.setTags(info, source)
+    saveNetCache(cacheKey, info)
+    return info
+  }
+  try {
+    return await request()
+  } catch (err) {
+    // 车机开机网络空档期：先登记退避重试，网络恢复后自动拉取并通知界面刷新
+    registerNetRetry(cacheKey, async() => {
+      try {
+        await request()
+        return true
+      } catch {
+        return false
+      }
+    })
+    // 有上次成功的数据则先展示，避免直接报联网失败
+    const cached = await getNetCache<TagInfo<T>>(cacheKey)
+    if (!cached) throw err
+    songlistActions.setTags(cached.data, source)
+    return cached.data
+  }
 }
 
 /**
@@ -68,12 +93,33 @@ export const getList = async(source: LX.OnlineSource, tabId: string, sortId: str
     else return listCache
   }
 
-  return musicSdk[source]?.songList.getList(sortId, tabId, page).then((result: ListInfo) => {
+  const request = async(): Promise<ListInfo> => {
+    const result = await (musicSdk[source]?.songList.getList(sortId, tabId, page) as Promise<ListInfo>)
+    if (!result) throw new Error('source not found: ' + source)
     cache.set(pageKey, result)
+    saveNetCache(pageKey, result)
     return result
-    // if (pageKey != listInfo.key) return
-    // setList(result, tabId, sortId, page)
-  })
+  }
+
+  try {
+    return await request()
+  } catch (err) {
+    // 网络未就绪：先登记退避重试，网络恢复后自动拉取并通知界面刷新
+    registerNetRetry(pageKey, async() => {
+      try {
+        cache.delete(pageKey)
+        await request()
+        return true
+      } catch {
+        return false
+      }
+    })
+    // 有磁盘缓存则先展示上次内容，避免用户直接看到联网失败
+    const cached = await getNetCache<ListInfo>(pageKey)
+    if (!cached) throw err
+    cache.set(pageKey, cached.data)
+    return cached.data
+  }
 }
 
 
@@ -173,7 +219,38 @@ export const getListDetail = async(id: string, source: LX.OnlineSource, page: nu
   let pageCache = listCache.get(pageKey) as DetailPageCache
   if (pageCache) return pageCache.data
 
-  return getListDetailLimit(source, id, page)
+  const request = async(): Promise<ListDetailInfo> => {
+    return getListDetailLimit(source, id, page)
+  }
+
+  try {
+    const result = await request()
+    saveNetCache(pageKey, result)
+    return result
+  } catch (err) {
+    // 先登记退避重试，联网恢复后自动更新并通知界面刷新
+    registerNetRetry(pageKey, async() => {
+      try {
+        const listCache2 = cache.get(listKey) as LimitDetailCache
+        if (listCache2) listCache2.delete(pageKey)
+        await request()
+        return true
+      } catch {
+        return false
+      }
+    })
+    // 离线兜底：用上次缓存的歌单内容填充
+    const cached = await getNetCache<ListDetailInfo>(pageKey)
+    if (!cached) throw err
+    const currentCache = cache.get(listKey) as LimitDetailCache
+    if (currentCache) {
+      currentCache.set(pageKey, {
+        data: cached.data,
+        sourcePage: cached.data.page ?? page,
+      })
+    }
+    return cached.data
+  }
 }
 
 /**
@@ -184,6 +261,7 @@ export const getListDetail = async(id: string, source: LX.OnlineSource, page: nu
  * @returns
  */
 export const getListDetailAll = async(source: LX.OnlineSource, id: string, isRefresh = false): Promise<LX.Music.MusicInfoOnline[]> => {
+  const allCacheKey = `sdetail_all__${source}__${id}`
   // console.log(tabId)
   const listKey = `sdetail__${source}__${id}`
   let listCache = cache.get(listKey) as LimitDetailCache
@@ -197,16 +275,35 @@ export const getListDetailAll = async(source: LX.OnlineSource, id: string, isRef
     if (pageCache) return pageCache.data
     return getListDetailLimit(source, id, page)
   }
-  return loadData(1).then(async result => {
-    if (result.total <= result.limit) return result.list
 
-    let maxPage = Math.ceil(result.total / result.limit)
-    const loadDetail = async(loadPage = 2): Promise<LX.Music.MusicInfoOnline[]> => {
-      return loadPage == maxPage
-        ? loadData(loadPage).then(result => result.list)
-        // eslint-disable-next-line @typescript-eslint/promise-function-async
-        : loadData(loadPage).then(result1 => loadDetail(++loadPage).then(result2 => [...result1.list, ...result2]))
-    }
-    return loadDetail().then(result2 => [...result.list, ...result2])
-  }).then(list => deduplicationList(list))
+  try {
+    const list = await loadData(1).then(async result => {
+      if (result.total <= result.limit) return result.list
+
+      let maxPage = Math.ceil(result.total / result.limit)
+      const loadDetail = async(loadPage = 2): Promise<LX.Music.MusicInfoOnline[]> => {
+        return loadPage == maxPage
+          ? loadData(loadPage).then(result => result.list)
+          // eslint-disable-next-line @typescript-eslint/promise-function-async
+          : loadData(loadPage).then(result1 => loadDetail(++loadPage).then(result2 => [...result1.list, ...result2]))
+      }
+      return loadDetail().then(result2 => [...result.list, ...result2])
+    }).then(list => deduplicationList(list))
+    saveNetCache(allCacheKey, list)
+    return list
+  } catch (err) {
+    registerNetRetry(allCacheKey, async() => {
+      try {
+        const listCache2 = cache.get(listKey) as LimitDetailCache
+        if (listCache2) listCache2.clear()
+        await getListDetailAll(source, id, true)
+        return true
+      } catch {
+        return false
+      }
+    })
+    const cached = await getNetCache<LX.Music.MusicInfoOnline[]>(allCacheKey)
+    if (!cached) throw err
+    return cached.data
+  }
 }

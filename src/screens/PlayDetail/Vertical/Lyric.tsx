@@ -119,6 +119,13 @@ const LrcLine = memo(({ line, lineNum, activeLine, onLayout, onPress }: LineProp
 })
 const wait = async() => new Promise(resolve => setTimeout(resolve, 100))
 const LYRIC_RESTORE_DELAY = 5000
+// 手动浏览歌词的兜底看门狗：拖拽/惯性结束事件丢失（快速手势、嵌套滚动冲突等）时，
+// 强制退出手动浏览态恢复自动滚动，避免 isPauseScrollRef 永久停在 true 导致歌词不再滚动
+const LYRIC_SCROLL_PAUSE_WATCHDOG = 8000
+// 首屏渲染行数固定为常量。原实现绑定当前播放行号（Math.max(line + 10, 10)），
+// 播放行变化会不断改变渲染窗口，造成行高测量错位与额外重渲染
+const LYRIC_INITIAL_NUM_TO_RENDER = 20
+const LYRIC_ACTIVE_LINE_POSITION = 0.42
 
 export default () => {
   const lyricLines = useLrcSet()
@@ -130,12 +137,18 @@ export default () => {
   const isPauseScrollRef = useRef(true)
   const scrollTimoutRef = useRef<NodeJS.Timeout | null>(null)
   const delayScrollTimeout = useRef<NodeJS.Timeout | null>(null)
+  const pauseScrollWatchdogRef = useRef<NodeJS.Timeout | null>(null)
+  const isDraggingRef = useRef(false)
+  const lastWatchdogRefreshRef = useRef(0)
   const lineRef = useRef({ line: 0, prevLine: 0 })
   const isFirstSetLrc = useRef(true)
   const scrollInfoRef = useRef<NativeSyntheticEvent<NativeScrollEvent>['nativeEvent'] | null>(null)
   const listLayoutInfoRef = useRef<{ spaceHeight: number, lineHeights: number[] }>({ spaceHeight: 0, lineHeights: [] })
   const scrollCancelRef = useRef<(() => void) | null>(null)
   const isShowLyricProgressSetting = useSettingValue('playDetail.isShowLyricProgressSetting')
+  const lrcFontSize = useSettingValue('playDetail.vertical.style.lrcFontSize')
+  // 尚未测量到真实行高时的估算行高，与 LrcLine 的字体行高 + 上下 padding 保持一致
+  const defaultLineHeight = useMemo(() => setSpText(lrcFontSize / 10) * 1.3 + 20, [lrcFontSize])
   // useLock()
   // const [imgUrl, setImgUrl] = useState(null)
   // const theme = useGetter('common', 'theme')
@@ -151,42 +164,119 @@ export default () => {
   // const imgWidth = useMemo(() => layout.width * 0.75, [layout.width])
   const handleScrollToActive = (index = lineRef.current.line) => {
     if (index < 0) return
-    if (flatListRef.current) {
-      // console.log('handleScrollToActive', index)
-      if (scrollInfoRef.current && lineRef.current.line - lineRef.current.prevLine == 1) {
-        let offset = listLayoutInfoRef.current.spaceHeight
-        for (let line = 0; line < index; line++) {
-          offset += listLayoutInfoRef.current.lineHeights[line]
-        }
-        offset += (listLayoutInfoRef.current.lineHeights[line] ?? 0) / 2
-        try {
-          scrollCancelRef.current = scrollTo(flatListRef.current, scrollInfoRef.current, offset - scrollInfoRef.current.layoutMeasurement.height * 0.42, 600, () => {
-            scrollCancelRef.current = null
-          })
-        } catch {}
+    const flatList = flatListRef.current
+    if (!flatList) return
+    // console.log('handleScrollToActive', index)
+    const { spaceHeight, lineHeights } = listLayoutInfoRef.current
+    // 逐项判空：行高是懒测量写入 lineHeights 的，数组中间很容易出现空洞；
+    // 原实现直接累加会让 offset 变成 NaN，而 scrollToOffset(NaN) 既不报错也不滚动，
+    // 表现为歌词永久卡住。这里先校验整条累加链，只要有一项缺失就整体降级为 scrollToIndex。
+    let canScrollByOffset = !!scrollInfoRef.current && lineRef.current.line - lineRef.current.prevLine == 1
+    let offset = spaceHeight
+    if (canScrollByOffset) {
+      if (!Number.isFinite(offset)) {
+        canScrollByOffset = false
       } else {
+        for (let line = 0; line < index; line++) {
+          const height = lineHeights[line]
+          if (!Number.isFinite(height)) {
+            canScrollByOffset = false
+            break
+          }
+          offset += height
+        }
+      }
+      if (canScrollByOffset) {
+        const activeLineHeight = lineHeights[index]
+        if (Number.isFinite(activeLineHeight)) offset += activeLineHeight / 2
+        else canScrollByOffset = false
+      }
+    }
+
+    if (canScrollByOffset && scrollInfoRef.current) {
+      const scrollInfo = scrollInfoRef.current
+      const target = offset - scrollInfo.layoutMeasurement.height * LYRIC_ACTIVE_LINE_POSITION
+      if (Number.isFinite(target)) {
         if (scrollCancelRef.current) {
           scrollCancelRef.current()
           scrollCancelRef.current = null
         }
         try {
-          flatListRef.current.scrollToIndex({
-            index,
-            animated: true,
-            viewPosition: 0.42,
+          scrollCancelRef.current = scrollTo(flatList, scrollInfo, target, 600, () => {
+            scrollCancelRef.current = null
           })
-        } catch {}
+        } catch (err) {
+          console.warn('[Lyric] scrollTo failed, fallback to scrollToIndex', err)
+          canScrollByOffset = false
+        }
+      } else {
+        canScrollByOffset = false
       }
     }
+
+    if (canScrollByOffset) return
+
+    if (scrollCancelRef.current) {
+      scrollCancelRef.current()
+      scrollCancelRef.current = null
+    }
+    try {
+      flatList.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: LYRIC_ACTIVE_LINE_POSITION,
+      })
+    } catch (err) {
+      console.warn('[Lyric] scrollToIndex failed', err)
+    }
+  }
+
+  const clearPauseScrollWatchdog = () => {
+    if (!pauseScrollWatchdogRef.current) return
+    clearTimeout(pauseScrollWatchdogRef.current)
+    pauseScrollWatchdogRef.current = null
+  }
+  const restoreAutoScroll = () => {
+    if (!isPauseScrollRef.current) return
+    if (scrollTimoutRef.current) {
+      clearTimeout(scrollTimoutRef.current)
+      scrollTimoutRef.current = null
+    }
+    playLineRef.current?.setVisible(false)
+    isPauseScrollRef.current = false
+    handleScrollToActive()
+  }
+  const startPauseScrollWatchdog = () => {
+    lastWatchdogRefreshRef.current = Date.now()
+    clearPauseScrollWatchdog()
+    pauseScrollWatchdogRef.current = setTimeout(() => {
+      pauseScrollWatchdogRef.current = null
+      // 兜底：结束事件丢失时强制恢复自动滚动，否则会永久卡在手动浏览态
+      restoreAutoScroll()
+    }, LYRIC_SCROLL_PAUSE_WATCHDOG)
+  }
+  const startRestoreAutoScrollTimeout = () => {
+    if (scrollTimoutRef.current) clearTimeout(scrollTimoutRef.current)
+    scrollTimoutRef.current = setTimeout(() => {
+      scrollTimoutRef.current = null
+      restoreAutoScroll()
+    }, LYRIC_RESTORE_DELAY)
+    // 恢复定时器本身也可能因后台挂起等原因不执行，再加一层看门狗
+    startPauseScrollWatchdog()
   }
 
   const handleScroll = ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollInfoRef.current = nativeEvent
     if (isPauseScrollRef.current) {
       playLineRef.current?.updateScrollInfo(nativeEvent)
+      // 手指仍在拖动时周期性刷新看门狗（限流 2s 一次），避免长时间拖拽被误判成事件丢失
+      if (isDraggingRef.current && Date.now() - lastWatchdogRefreshRef.current > 2000) {
+        startPauseScrollWatchdog()
+      }
     }
   }
   const handleScrollBeginDrag = () => {
+    isDraggingRef.current = true
     isPauseScrollRef.current = true
     playLineRef.current?.setVisible(true)
     if (delayScrollTimeout.current) {
@@ -201,19 +291,24 @@ export default () => {
       scrollCancelRef.current()
       scrollCancelRef.current = null
     }
+    // 一进入手动浏览就启动看门狗，保证即使后续结束事件全部丢失也能自动恢复滚动
+    startPauseScrollWatchdog()
   }
 
   const onScrollEndDrag = () => {
+    isDraggingRef.current = false
     if (!isPauseScrollRef.current) return
-    if (scrollTimoutRef.current) clearTimeout(scrollTimoutRef.current)
-    scrollTimoutRef.current = setTimeout(() => {
-      playLineRef.current?.setVisible(false)
-      scrollTimoutRef.current = null
-      isPauseScrollRef.current = false
-      handleScrollToActive()
-    }, LYRIC_RESTORE_DELAY)
+    startRestoreAutoScrollTimeout()
   }
 
+  const handleMomentumScrollEnd = () => {
+    // 惯性滚动结束才是手动浏览真正结束的信号。
+    // 原实现只监听 onScrollEndDrag，惯性滑动会继续消耗 5s 计时，
+    // 甚至因后续没有再次触发而让恢复定时器在滑动过程中就被用掉，这里补一次重启。
+    isDraggingRef.current = false
+    if (!isPauseScrollRef.current) return
+    startRestoreAutoScrollTimeout()
+  }
 
   useEffect(() => {
     return () => {
@@ -225,6 +320,10 @@ export default () => {
         clearTimeout(scrollTimoutRef.current)
         scrollTimoutRef.current = null
       }
+      if (pauseScrollWatchdogRef.current) {
+        clearTimeout(pauseScrollWatchdogRef.current)
+        pauseScrollWatchdogRef.current = null
+      }
     }
   }, [])
 
@@ -233,6 +332,12 @@ export default () => {
     listLayoutInfoRef.current.lineHeights = []
     lineRef.current.prevLine = 0
     lineRef.current.line = 0
+    // 换歌词后旧的滚动定时器与看门狗必须失效，否则会对新列表按旧位置滚动
+    clearPauseScrollWatchdog()
+    if (scrollTimoutRef.current) {
+      clearTimeout(scrollTimoutRef.current)
+      scrollTimoutRef.current = null
+    }
     if (!flatListRef.current) return
     flatListRef.current.scrollToOffset({
       offset: 0,
@@ -262,6 +367,12 @@ export default () => {
     lineRef.current.prevLine = lineRef.current.line
     lineRef.current.line = line
     if (!flatListRef.current || isPauseScrollRef.current) return
+
+    // 先清掉上一行残留的延迟滚动，避免快速切行时多个 delayScrollTimeout 叠加触发重复滚动
+    if (delayScrollTimeout.current) {
+      clearTimeout(delayScrollTimeout.current)
+      delayScrollTimeout.current = null
+    }
 
     if (line - lineRef.current.prevLine != 1) {
       handleScrollToActive()
@@ -305,6 +416,7 @@ export default () => {
       clearTimeout(scrollTimoutRef.current)
       scrollTimoutRef.current = null
     }
+    clearPauseScrollWatchdog()
     playLineRef.current?.setVisible(false)
     isPauseScrollRef.current = false
     global.app_event.setProgress(time)
@@ -318,11 +430,30 @@ export default () => {
       clearTimeout(scrollTimoutRef.current)
       scrollTimoutRef.current = null
     }
+    clearPauseScrollWatchdog()
     playLineRef.current?.setVisible(false)
     isPauseScrollRef.current = false
     global.app_event.setProgress(targetLine.time / 1000)
     if (!playerState.isPlay) play()
   }, [])
+
+  const getItemLayout: FlatListType['getItemLayout'] = useCallback((_data: ArrayLike<Line> | null | undefined, index: number) => {
+    // 优先使用已测量到的真实行高，未测量到的行用估算行高兜底。
+    // 这样 scrollToIndex 在行高数组存在空洞时也能算出确定的偏移，
+    // 不必依赖 onScrollToIndexFailed 反复重试（原缺陷的观感就是「重试也滚不动」）。
+    const { spaceHeight, lineHeights } = listLayoutInfoRef.current
+    let offset = Number.isFinite(spaceHeight) ? spaceHeight : 0
+    for (let line = 0; line < index; line++) {
+      const height = lineHeights[line]
+      offset += Number.isFinite(height) ? height : defaultLineHeight
+    }
+    const height = lineHeights[index]
+    return {
+      length: Number.isFinite(height) ? height : defaultLineHeight,
+      offset,
+      index,
+    }
+  }, [defaultLineHeight])
 
   const renderItem: FlatListType['renderItem'] = ({ item, index }) => {
     return (
@@ -348,8 +479,10 @@ export default () => {
         ListFooterComponent={spaceComponent}
         onScrollBeginDrag={handleScrollBeginDrag}
         onScrollEndDrag={onScrollEndDrag}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         fadingEdgeLength={100}
-        initialNumToRender={Math.max(line + 10, 10)}
+        initialNumToRender={LYRIC_INITIAL_NUM_TO_RENDER}
+        getItemLayout={getItemLayout}
         onScrollToIndexFailed={handleScrollToIndexFailed}
         onScroll={handleScroll}
       />

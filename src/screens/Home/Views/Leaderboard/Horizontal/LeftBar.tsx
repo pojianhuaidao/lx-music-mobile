@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react'
+﻿import { forwardRef, useImperativeHandle, useRef } from 'react'
 import { View } from 'react-native'
 
 import SourceSelector, {
@@ -12,6 +12,7 @@ import { handleCollect, handlePlay } from '../listAction'
 import boardState, { type InitState } from '@/store/leaderboard/state'
 import { useTheme } from '@/store/theme/hook'
 import { getBoardsList } from '@/core/leaderboard'
+import { useNetRetryRefresh } from '@/utils/useNetRetryRefresh'
 import { playRecommendList } from '@/core/recommend'
 
 type Sources = Readonly<InitState['sources']>
@@ -41,6 +42,18 @@ export default forwardRef<LeftBarType, LeftBarProps>(({ onChangeList }, ref) => 
     },
   }), [])
 
+
+  const reloadBoardsRef = useRef<() => void>(() => {})
+  reloadBoardsRef.current = () => {
+    const { source, id } = boundInfo.current
+    if (!source) return
+    void getBoardsList(source).then(list => {
+      if (!list.length) return
+      boardsListRef.current?.setList(list, id ?? list[0].id)
+    }).catch(() => {})
+  }
+  // 网络恢复后自动补齐排行榜列表，避免开机空档期显示空白/联网失败
+  useNetRetryRefresh(['boards__'], () => reloadBoardsRef.current())
 
   const onSourceChange = (source: LX.OnlineSource) => {
     boundInfo.current.source = source

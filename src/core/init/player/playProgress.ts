@@ -1,6 +1,7 @@
 import { updateListMusics } from '@/core/list'
 import { setMaxplayTime, setNowPlayTime } from '@/core/player/progress'
 import { setCurrentTime, getDuration, getPosition } from '@/plugins/player'
+import { resync as resyncLyric } from '@/core/lyric'
 import { formatPlayTime2 } from '@/utils/common'
 import { savePlayInfo } from '@/utils/data'
 import { throttleBackgroundTimer } from '@/utils/tools'
@@ -74,9 +75,21 @@ export default () => {
 
   const setProgress = (time: number, maxTime?: number) => {
     if (!playerState.musicInfo.id) return
+    if (!Number.isFinite(time)) {
+      console.warn('[playProgress] invalid progress, ignored:', time)
+      return
+    }
     // console.log('setProgress', time, maxTime)
     setNowPlayTime(time)
-    void setCurrentTime(time)
+    const musicId = playerState.musicInfo.id
+    void setCurrentTime(time).then(() => {
+      // seek 之后必须重建歌词时间轴，否则歌词内部时钟仍停留在 seek 前的位置，
+      // 表现为「拖动进度条/恢复进度后歌词不再滚动」。切歌场景下不再对齐旧歌歌词。
+      if (musicId != playerState.musicInfo.id) return
+      resyncLyric()
+    }).catch((err: unknown) => {
+      console.error('[playProgress] setCurrentTime failed', err)
+    })
 
     if (maxTime != null) setMaxplayTime(maxTime)
 

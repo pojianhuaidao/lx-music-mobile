@@ -1,7 +1,9 @@
-import leaderboardState, { type Board, type ListDetailInfo } from '@/store/leaderboard/state'
+﻿import leaderboardState, { type Board, type ListDetailInfo } from '@/store/leaderboard/state'
 import leaderboardActions from '@/store/leaderboard/action'
 import { deduplicationList, toNewMusicInfo } from '@/utils'
 import musicSdk from '@/utils/musicSdk'
+import { getNetCache, saveNetCache } from './netCache'
+import { registerNetRetry } from './netRetry'
 
 /**
  * 获取排行榜内单页歌曲
@@ -35,8 +37,31 @@ const LIST_LOAD_LIMIT = 30
 export const getBoardsList = async(source: LX.OnlineSource) => {
   // const source = (await getLeaderboardSetting()).source as LX.OnlineSource
   if (leaderboardState.boards[source]) return leaderboardState.boards[source]!.list
-  const board = await (musicSdk[source]?.leaderboard.getBoards() as Promise<Board>)
-  setBoard(board, source)
+  const cacheKey = `boards__${source}`
+  const request = async(): Promise<Board> => {
+    const board = await (musicSdk[source]?.leaderboard.getBoards() as Promise<Board>)
+    if (!board) throw new Error('source not found: ' + source)
+    setBoard(board, source)
+    saveNetCache(cacheKey, board)
+    return board
+  }
+  try {
+    await request()
+  } catch (err) {
+    // 车机开机网络空档期：先登记退避重试，联网恢复后自动拉取并通知界面刷新
+    registerNetRetry(cacheKey, async() => {
+      try {
+        await request()
+        return true
+      } catch {
+        return false
+      }
+    })
+    // 有上次成功的数据则先展示，避免直接报联网失败
+    const cached = await getNetCache<Board>(cacheKey)
+    if (!cached) throw err
+    setBoard(cached.data, source)
+  }
   return leaderboardState.boards[source]!.list
 }
 
@@ -119,7 +144,36 @@ export const getListDetail = async(id: string, page: number, isRefresh = false):
   let pageCache = listCache.get(pageKey) as PageCache
   if (pageCache) return pageCache.data
 
-  return getListLimit(source, bangId, page)
+  const diskKey = `bdlist__${source}__${bangId}__${page}`
+  const request = async(): Promise<ListDetailInfo> => {
+    return getListLimit(source, bangId, page)
+  }
+
+  try {
+    const result = await request()
+    saveNetCache(diskKey, result)
+    return result
+  } catch (err) {
+    // 先登记退避重试，联网恢复后自动更新并通知界面刷新
+    registerNetRetry(diskKey, async() => {
+      try {
+        const cache2 = cache.get(listKey) as CacheValue
+        if (cache2) cache2.delete(pageKey)
+        await request()
+        return true
+      } catch {
+        return false
+      }
+    })
+    // 离线兜底：展示上次缓存的排行内容
+    const cached = await getNetCache<ListDetailInfo>(diskKey)
+    if (!cached) throw err
+    const currentCache = cache.get(listKey) as CacheValue
+    if (currentCache) {
+      currentCache.set(pageKey, { data: cached.data, sourcePage: cached.data.page ?? page })
+    }
+    return cached.data
+  }
 }
 
 /**
@@ -143,18 +197,38 @@ export const getListDetailAll = async(id: string, isRefresh = false): Promise<LX
     if (pageCache) return pageCache.data
     return getListLimit(source, bangId, page)
   }
-  return loadData(1).then(async result => {
-    if (result.total <= result.limit) return result.list
 
-    let maxPage = Math.ceil(result.total / result.limit)
-    const loadDetail = async(loadPage = 2): Promise<LX.Music.MusicInfoOnline[]> => {
-      return loadPage == maxPage
-        ? loadData(loadPage).then(result => result.list)
-        // eslint-disable-next-line @typescript-eslint/promise-function-async
-        : loadData(loadPage).then(result1 => loadDetail(++loadPage).then(result2 => [...result1.list, ...result2]))
-    }
-    return loadDetail().then(result2 => [...result.list, ...result2])
-  }).then(list => deduplicationList(list))
+  const diskKey = `bdlist_all__${source}__${bangId}`
+  try {
+    const list = await loadData(1).then(async result => {
+      if (result.total <= result.limit) return result.list
+
+      let maxPage = Math.ceil(result.total / result.limit)
+      const loadDetail = async(loadPage = 2): Promise<LX.Music.MusicInfoOnline[]> => {
+        return loadPage == maxPage
+          ? loadData(loadPage).then(result => result.list)
+          // eslint-disable-next-line @typescript-eslint/promise-function-async
+          : loadData(loadPage).then(result1 => loadDetail(++loadPage).then(result2 => [...result1.list, ...result2]))
+      }
+      return loadDetail().then(result2 => [...result.list, ...result2])
+    }).then(list => deduplicationList(list))
+    saveNetCache(diskKey, list)
+    return list
+  } catch (err) {
+    registerNetRetry(diskKey, async() => {
+      try {
+        const cache2 = cache.get(listKey) as CacheValue
+        if (cache2) cache2.clear()
+        await getListDetailAll(id, true)
+        return true
+      } catch {
+        return false
+      }
+    })
+    const cached = await getNetCache<LX.Music.MusicInfoOnline[]>(diskKey)
+    if (!cached) throw err
+    return cached.data
+  }
 }
 
 /**

@@ -33,7 +33,13 @@ export const init = async() => {
  */
 const handleSetLyric = async(lyric: string, translation = '', romalrc = '') => {
   lrcSetLyric(lyric, translation, romalrc)
-  await setDesktopLyric(lyric, translation, romalrc)
+  // 桌面歌词属于可选能力（浮窗权限、原生模块异常等都可能失败），
+  // 不能因为桌面歌词设置失败而抛出异常，否则会中断主歌词的后续流程
+  try {
+    await setDesktopLyric(lyric, translation, romalrc)
+  } catch (err) {
+    console.warn('[lyric] setDesktopLyric failed', err)
+  }
 }
 
 /**
@@ -41,8 +47,14 @@ const handleSetLyric = async(lyric: string, translation = '', romalrc = '') => {
  * @param time play time
  */
 export const handlePlay = (time: number) => {
+  if (!Number.isFinite(time)) {
+    console.warn('[lyric] invalid lyric time, ignored:', time)
+    return
+  }
   lrcPlay(time)
-  void playDesktopLyric(time)
+  void playDesktopLyric(time).catch((err: unknown) => {
+    console.warn('[lyric] playDesktopLyric failed', err)
+  })
 }
 
 /**
@@ -99,6 +111,21 @@ export const toggleRoma = async(isShowLyricRoma: boolean) => {
 export const play = () => {
   void getPosition().then((position) => {
     handlePlay(position * 1000)
+  })
+}
+
+/**
+ * 重新对齐歌词时间轴
+ * 歌词内部时钟只在 handlePlay 时按播放位置重建，单纯 seek 播放器（拖动进度条、远程 seek、
+ * 恢复播放进度）不会触发歌词重新定位，导致歌词停留在旧位置后不再滚动。
+ * 因此在播放进度跳变后必须补一次 handlePlay。
+ */
+export const resync = () => {
+  if (!playerState.isPlay) return
+  void getPosition().then((position) => {
+    handlePlay(position * 1000)
+  }).catch((err: unknown) => {
+    console.warn('[lyric] resync failed', err)
   })
 }
 

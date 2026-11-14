@@ -29,17 +29,33 @@ const handleScrollY = (element: ScrollElement<FlatList<any>>, info: NativeSynthe
     if (element.lx_scrollTimeout) clearTimeout(element.lx_scrollTimeout)
     element.lx_scrollTimeout = undefined
   }
-  if (element.lx_scrollLockKey) {
-    element.lx_scrollNextParams = [element, info, to, duration, fn]
-    element.lx_scrollLockKey = -1
-    return clean
+
+  // 入口防御：目标位置或当前偏移不是有效数字时直接放弃，并把完成回调交给调用方，
+  // 避免 NaN 一路传到 scrollToOffset 后表现为「静默不滚动」
+  if (!Number.isFinite(to)) {
+    console.warn('[scroll] invalid scroll target, ignored:', to)
+    fn()
+    return noop
+  }
+  let start = info.contentOffset.y
+  if (!Number.isFinite(start)) {
+    console.warn('[scroll] invalid contentOffset.y, ignored:', start)
+    fn()
+    return noop
   }
 
+  if (element.lx_scrollLockKey) {
+    // 锁冲突：说明上一个动画还在跑。旧逻辑只把新目标塞进 lx_scrollNextParams 并返回 clean，
+    // 而 clean 会清掉正在运行的动画定时器，导致旧动画被中断、新目标也没人消费，
+    // 现象就是「该滚的时候不滚」。这里改为先 clean 结束旧动画，再让本次调用重新排队执行。
+    clean()
+  }
 
-  let start = info.contentOffset.y
   if (to > start) {
-    let maxScrollTop = info.contentSize.height - info.layoutMeasurement.height
-    if (to > maxScrollTop) to = maxScrollTop
+    const maxScrollTop = info.contentSize.height - info.layoutMeasurement.height
+    if (Number.isFinite(maxScrollTop)) {
+      if (to > maxScrollTop) to = maxScrollTop
+    }
   } else if (to < start) {
     if (to < 0) to = 0
   } else {
