@@ -124,9 +124,12 @@ export const filterList = async({ playedList, listId, list, playerMusicInfo, isN
     isNext,
   })
 
-  if (!filteredList.length && playedList.length) {
+  // 候选池为空、或仅剩当前正在播放的这一首时，重置已播列表，
+  // 否则随机模式会在同一首（或同一两首）之间反复自循环
+  if (playedList.length && (!filteredList.length || (filteredList.length === 1 && playerMusicInfo && filteredList[0].id == playerMusicInfo.id))) {
     clearPlayedList()
-    return { filteredList: canPlayList, playerIndex }
+    const index = playerMusicInfo && canPlayList.length ? canPlayList.findIndex(m => m.id == playerMusicInfo.id) : -1
+    return { filteredList: canPlayList, playerIndex: index }
   }
   return { filteredList, playerIndex }
 }

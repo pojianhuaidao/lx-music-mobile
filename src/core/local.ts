@@ -172,7 +172,12 @@ export const scanFolderFiles = async(folderPath: string, recursive: boolean = fa
 export const selectAndImportFolder = async(): Promise<void> => {
   try {
     const result = await selectManagedFolder(true)
-    if (!result || !result.path) return
+    // 用户取消选择时直接返回；若返回结果缺少可用路径，给出提示，避免表现为“点了没反应”
+    if (!result) return
+    if (!result.path) {
+      toast(global.i18n.t('open_storage_select_managed_folder_failed_tip', { msg: String((result as any).uri ?? 'unknown uri') }))
+      return
+    }
 
     const folderPath = result.path
     const folderName = folderPath.split(/[/\\]/).pop() || folderPath
@@ -205,6 +210,8 @@ export const selectAndImportFolder = async(): Promise<void> => {
   } catch (e) {
     console.error('Error selecting folder:', e)
     localAction.setScanning(false)
+    // 原生文件选择器或扫描异常时给出可见提示，避免用户感知为“点击无反应”
+    toast(global.i18n.t('open_storage_select_managed_folder_failed_tip', { msg: (e as Error)?.message ?? String(e) }))
   }
 }
 

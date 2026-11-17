@@ -452,9 +452,16 @@ export const getNextPlayMusicInfo = async(): Promise<LX.Player.PlayMusicInfo | n
     case 'listLoop':
       nextIndex = playerIndex === filteredList.length - 1 ? 0 : playerIndex + 1
       break
-    case 'random':
+    case 'random': {
+      // 随机模式排除当前正在播放的歌曲，避免候选池仅剩当前曲时随机到自身造成自循环
+      const currentMusic = playMusicInfo.isTempPlay ? currentList[playInfo.playerPlayIndex] : playMusicInfo.musicInfo
+      if (filteredList.length > 1 && currentMusic) {
+        const pool = filteredList.filter(m => m.id != currentMusic.id)
+        if (pool.length) filteredList = pool
+      }
       nextIndex = getRandom(0, filteredList.length)
       break
+    }
     case 'list':
       nextIndex = playerIndex === filteredList.length - 1 ? -1 : playerIndex + 1
       break
@@ -562,9 +569,16 @@ export const playNext = async(isAutoToggle = false): Promise<void> => {
     case 'listLoop':
       nextIndex = playerIndex === filteredList.length - 1 ? 0 : playerIndex + 1
       break
-    case 'random':
+    case 'random': {
+      // 随机模式排除当前正在播放的歌曲，避免候选池仅剩当前曲时随机到自身造成自循环
+      const currentMusic = playMusicInfo.isTempPlay ? currentList[playInfo.playerPlayIndex] : playMusicInfo.musicInfo
+      if (filteredList.length > 1 && currentMusic) {
+        const pool = filteredList.filter(m => m.id != currentMusic.id)
+        if (pool.length) filteredList = pool
+      }
       nextIndex = getRandom(0, filteredList.length)
       break
+    }
     case 'list':
       nextIndex = playerIndex === filteredList.length - 1 ? -1 : playerIndex + 1
       break

@@ -7,7 +7,7 @@ import { Icon } from '@/components/common/Icon'
 import { useScanning, useScanProgress, localAction } from '@/store/local'
 import { selectAndImportFolder, scanAllStorage } from '@/core/local'
 import { saveLocalListNow, saveLocalExcludedIdsNow } from '@/core/init/local'
-import { confirmDialog } from '@/utils/tools'
+import { confirmDialog, toast } from '@/utils/tools'
 import SortModal, { type SortModalType } from './SortModal'
 import FolderManagerModal, { type FolderManagerModalType } from './FolderManagerModal'
 
@@ -20,9 +20,12 @@ export default memo(() => {
   const folderManagerRef = useRef<FolderManagerModalType>(null)
 
   const handleSelectFolder = useCallback(async() => {
-    if (isScanning) return
+    if (isScanning) {
+      toast(t('local_scanning'))
+      return
+    }
     await selectAndImportFolder()
-  }, [isScanning])
+  }, [isScanning, t])
 
   const handleShowSort = useCallback(() => {
     sortModalRef.current?.show()
@@ -33,9 +36,12 @@ export default memo(() => {
   }, [])
 
   const handleScanAll = useCallback(async() => {
-    if (isScanning) return
+    if (isScanning) {
+      toast(t('local_scanning'))
+      return
+    }
     await scanAllStorage()
-  }, [isScanning])
+  }, [isScanning, t])
 
   const handleClearList = useCallback(async() => {
     const confirmed = await confirmDialog({
