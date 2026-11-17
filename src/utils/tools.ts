@@ -11,6 +11,7 @@ import { scaleSizeH, scaleSizeW, setSpText } from './pixelRatio'
 import { toOldMusicInfo } from './index'
 import { stringMd5 } from 'react-native-quick-md5'
 import { windowSizeTools } from '@/utils/windowSizeTools'
+import { getWindowMetrics } from '@/utils/windowBreakpoints'
 
 
 // https://stackoverflow.com/a/47349998
@@ -519,7 +520,9 @@ export const createStyle = <T extends StyleSheet.NamedStyles<T>>(styles: T | Sty
 }
 
 export const isHorizontalMode = (width: number, height: number): boolean => {
-  return width / height > 1.2
+  // 车机小窗/双小窗并存时窗口可能又窄又矮，仅凭宽高比会误判为横屏，
+  // 因此额外要求宽度与高度都达到可分栏的最小值（见 windowBreakpoints）
+  return getWindowMetrics(width, height).isHorizontalMode
 }
 
 

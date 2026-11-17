@@ -99,6 +99,9 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### 修复
 
+- 修复车机强制小窗/双小窗并存时窗口形态误判的问题：原 `isHorizontalMode` 仅判断 `width / height > 1.2`，车机小窗（display 13，dp 726×856）与双小窗并存（可用宽约 363dp、高度折半）场景会出现「又窄又矮仍被判为横屏」，强行左右分栏导致内容挤压与控件越界。现改为引用 `windowBreakpoints.getWindowMetrics()`，判定条件为「宽高比 > 1.2 且 width ≥ 640dp 且 height ≥ 360dp」双阈值；`getRowInfo` 的 medium 分支（ratio < 1.8 强制单列）语义保持不变
+- 修复进入小窗后界面尺寸停留在全屏值、布局不跟随的问题：`windowSizeTools.init()` 原先仅在启动时执行一次且 `Dimensions.addEventListener('change')` 被整段注释，`SizeView` 的 `dimensionsChangedRef` 闸门在首帧后即关闭，导致 ROM 只走 configuration 变化（不派发 change 事件）时尺寸永不更新。现 `SizeView` 移除一次性闸门、每次根视图 `onLayout` 都应用新尺寸，并在 `Dimensions` change 时以 `measureInWindow` 主动重测兜底（测量失败回退 `Dimensions.get('window')`）；`windowSizeTools` 恢复 change 监听（100ms 去抖合并多次事件），新增 `refresh()` 与 `applySize()`（取整、尺寸无变化不广播、listener 逐个 try/catch 隔离异常）
+- 修复窄/矮窗口下播放页控件溢出与设置页右侧裁切的问题：竖屏播放页内边距在紧凑窗口（< 420×520dp）下收缩至 8，控制条宽度加上界 `Math.max((win.width * 0.96 - 24) / 3, 28)` 避免三键被裁；歌词页左右内边距随窗口收缩；设置页 `Horizontal` 的 `main` 由 `flex: 0` 改为可增长，并为 `ScrollView` 补 `flex: 1`，右侧内容不再被裁切
 - 修复播放详情歌词页歌词不滚动、长期停在首屏行的问题：根因是 `Vertical/Lyric.tsx` 的 `handleScrollToActive` 用「行高数组累加」计算滚动目标 offset，而 `lineHeights` 由 `onLayout` 异步测量填充，测量未完成或列表虚拟化回收时存在空洞（`undefined`），累加结果为 `NaN`，`scrollToOffset({ offset: NaN })` 不报错也不滚动，且没有任何降级或自愈路径。现改为累加前逐项 `Number.isFinite` 判空，任意空洞即整体降级为 `scrollToIndex`（依赖新增的 `getItemLayout` 用 `defaultLineHeight` 估算行高兜底）；`scrollTo` 抛错或目标非有限值时同样降级；新增 `getItemLayout`、`initialNumToRender` 固定为常量 `LYRIC_INITIAL_NUM_TO_RENDER = 20`，避免原「绑定播放行号」的渲染窗口随切行抖动导致行高测量错位
 - 修复手动拖动歌词浏览后自动滚动永不恢复（需切歌才恢复）的问题：`isPauseScrollRef` 原先只在 `onScrollEndDrag` 复位，该事件在快速滑动、惯性滚动、系统打断等场景可能丢失，一旦丢失即永久停留在「手动浏览」态，不再跟随播放行。现新增 `onMomentumScrollEnd` 复位路径，并在 `handleScrollBeginDrag` 启动 8s 看门狗（`LYRIC_SCROLL_PAUSE_WATCHDOG`，拖动中每 2s 限流续期），无论事件是否丢失，8s 后都强制恢复自动滚动并对齐当前播放行；切歌、换歌词时同步清理看门狗与恢复定时器
 - 修复歌词滚动动画在锁冲突时被静默丢弃的问题：`src/utils/scroll.ts` 在滚动锁被占用时调用 `clean()` 杀掉正在进行的动画定时器后直接返回，本次新滚动目标被丢弃，表现为歌词卡在当前行不再跟随。现改为锁冲突时先 `clean()` 再立即按新目标重新排队执行；入口对 `offset` / `maxScrollTop` 增加有限值防御，非法值记录告警后跳过，避免 `NaN` 再次进入动画链路
@@ -124,12 +127,15 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### 新增
 
+- 新增车机双形态窗口断点体系 `src/utils/windowBreakpoints.ts`：以车机实测规格（全屏 display 0 物理 2400×896 / density 1.5 / app_bounds 2270×896 → dp ≈1513×597；小窗 display 13 物理 726×856 / density 1.0 → dp 726×856）为基准，导出 `HORIZONTAL_MIN_WIDTH = 640`、`HORIZONTAL_MIN_HEIGHT = 360`、`PLAY_DETAIL_HORIZONTAL_MIN_WIDTH = 800`（726dp 小窗自动回退上下布局）、`PLAY_DETAIL_HORIZONTAL_MIN_HEIGHT = 360`、`COMPACT_WIDTH = 420`、`COMPACT_HEIGHT = 520` 及 `getWindowMetrics(width, height)`；断点全部以 dp 表达、不按像素写死，适配不同 density 与多小窗并存场景
 - 新增「免唤醒」模式：语音设置中开启后无需喊唤醒词「你好小马」，直接说「播放 歌名」即可模糊搜索播放。原生 `SherpaEngine` 新增 `setEnableWakeWord` 开关，关闭时采集循环跳过 KWS 关键词监听、进入持续 ASR 识别（复用在线 ASR stream 处理：稳定文本判定 + 提交后 reset 继续监听下一句）；`VoiceRecognitionService` / `VoiceModule` 新增 `setWakeWordFree(boolean)` 运行时即时生效；JS 侧新增设置项 `voice.wakeWordFree`（默认关闭），免唤醒模式下识别出的非命令文本（环境音/闲聊等）静默忽略，不弹「未找到相关歌曲」、不报错
 - 语音识别文本日志：`SherpaEngine` 在 `onResult` 提交识别结果前打印 `ASR result text: [...]`（免唤醒模式为 `ASR free result text: [...]`），便于真机 logcat 定位识别质量与链路问题
 - 新增语音设置项「播放后自动停止监听」（`voice.autoStopAfterPlay`，默认关闭）：语音搜歌播放成功后自动停止语音监听；该设置触发的 `stopListening` 与采集线程的并发安全由本次安全停止协议保证（见修复项「播放时直接闪退」）
 
 ### 优化
 
+- 窗口尺寸刷新链路重构为「主动取数 + 多重兜底」：新增 `getWindowSizeFromDimensions()` 同步读取 `Dimensions.get('window')`（每次读取均反映当前 configuration，异步原生取值不再作为刷新基准，避免覆盖 `SizeView` 的真实 layout 尺寸）；`refreshOnForeground` 的界面刷新改为先 `windowSizeTools.refresh()` 再 `dispatchTick`，解决「画面已刷新但布局仍按全屏基准渲染」导致小窗内仍走横屏分栏的问题
+- 缩放基准由模块加载时一次性冻结改为每次调用动态重算：`pixelRatio.ts` 抽出 `updateScale()`，按当前窗口尺寸与 density 重算 `screenW/screenH`（保留宽高交换）、`fontScale`、`pixelRatio`、`screenPxW/screenPxH`、`scaleW/scaleH` 与 `scale = Math.min(scaleW, scaleH, 3.1)`，并以 `sizeKey` 缓存避免同尺寸重复计算；`scaleSizeW` / `scaleSizeH` / `getTextSize` / `scaleSizeAbsHR` 调用前均先 `updateScale()`，解决 density 1.5 ↔ 1.0 切换后字号与内边距偏大导致的小窗溢出。各页面 `HEADER_HEIGHT` 等模块级常量仍为启动时取值，属已知取舍
 - 冷启动提速：拆分 critical path 与后台段，首屏前仅保留 setting/theme/i18n/player 等必要初始化（critical path 完成即 pushHomeScreen），音源注入（initUserApiAndApiSource）、下载模块（initDownloadData/配置同步）与本地音乐扫描移入首屏后后台注水，依赖 global.lx.apiInitPromise 兜底保证搜索/播放数据语义不变
 - init chunk 与 navigation chunk 并行加载，减少首屏前串行模块加载等待
 - dataInit 三读（用户列表/不喜欢列表/上次视图状态）与 initDownloadData 两读（下载列表/下载配置）改为 Promise.all 并行，压缩 AsyncStorage Bridge IPC 串行等待

@@ -17,39 +17,49 @@ const getStatusbarHeight = (winHeight: number, layoutHeight: number) => {
 export default memo(() => {
   const currentHeightRef = useRef(commonState.statusbarHeight)
   const sizeRef = useRef([0, 0])
-  const dimensionsChangedRef = useRef(true)
-  const handleLayout = useCallback(({ nativeEvent: { layout } }: LayoutChangeEvent | { nativeEvent: { layout: { width: number, height: number } } }) => {
-    // console.log('handleLayout')
-    if (!dimensionsChangedRef.current) return
-    void getWindowSize().then(size => {
-      dimensionsChangedRef.current = false
-      // console.log(layout, size)
-      sizeRef.current = [size.height, layout.height]
-      const height = getStatusbarHeight(size.height, layout.height)
+  const MeasureViewRef = useRef<View>(null)
 
-      if (currentHeightRef.current != height) {
-        currentHeightRef.current = height
-        setStatusbarHeight(height)
+  const applySize = useCallback((width: number, height: number) => {
+    if (!width || !height) return
+    void getWindowSize().then(size => {
+      sizeRef.current = [size.height, height]
+      const statusbarHeight = getStatusbarHeight(size.height, height)
+
+      if (currentHeightRef.current != statusbarHeight) {
+        currentHeightRef.current = statusbarHeight
+        setStatusbarHeight(statusbarHeight)
       }
-      // console.log(layout, size)
-      const currentSize = windowSizeTools.getSize()
-      if (currentSize.width != layout.width || currentSize.height != layout.height) {
-        windowSizeTools.setWindowSize(layout.width, layout.height)
-      }
+      windowSizeTools.setWindowSize(width, height)
+    }).catch(() => {
+      windowSizeTools.setWindowSize(width, height)
     })
   }, [])
+
+  const handleLayout = useCallback(({ nativeEvent: { layout } }: LayoutChangeEvent | { nativeEvent: { layout: { width: number, height: number } } }) => {
+    // 车机进出小窗时根视图会重新 layout，必须每次都应用新尺寸，
+    // 原来的一次性闸门（dimensionsChangedRef）会让后续尺寸变化被丢弃
+    applySize(layout.width, layout.height)
+  }, [applySize])
+
   useEffect(() => {
-    // let timeout: NodeJS.Timeout | null = null
+    // Dimensions change 时根视图不一定触发 onLayout（例如仅 density 变化、
+    // ROM 直接改 configuration 的场景），这里主动重新测量兜底
+    let timer: ReturnType<typeof setTimeout> | null = null
     const subscription = Dimensions.addEventListener('change', () => {
-      dimensionsChangedRef.current = true
-      // if (timeout) clearTimeout(timeout)
-      // timeout = setTimeout(() => {
-      //   timeout = null
-      //   viewRef.current?.measureInWindow((x, y, width, height) => {
-      //     handleLayout({ nativeEvent: { layout: { width, height } } })
-      //   })
-      // }, 100)
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        timer = null
+        MeasureViewRef.current?.measureInWindow((x, y, width, height) => {
+          if (width && height) {
+            applySize(width, height)
+          } else {
+            const window = Dimensions.get('window')
+            applySize(window.width, window.height)
+          }
+        })
+      }, 100)
     })
+    void windowSizeTools.refresh()
 
     const handleSettingUpdate = (keys: Array<keyof LX.AppSetting>) => {
       if (!keys.includes('common.alwaysKeepStatusbarHeight') || !sizeRef.current[1]) return
@@ -63,10 +73,10 @@ export default memo(() => {
     global.state_event.on('configUpdated', handleSettingUpdate)
 
     return () => {
+      if (timer) clearTimeout(timer)
       subscription.remove()
       global.state_event.off('configUpdated', handleSettingUpdate)
     }
-  }, [])
-  return (<View style={StyleSheet.absoluteFill} onLayout={handleLayout} />)
+  }, [applySize])
+  return (<View ref={MeasureViewRef} style={StyleSheet.absoluteFill} onLayout={handleLayout} />)
 }, () => true)
-

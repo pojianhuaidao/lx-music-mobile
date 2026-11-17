@@ -4,8 +4,14 @@
  * ui设计基准,iphone 6
  * width:375
  * height:667
+ *
+ * 注意：车机小窗态（display 13，density 1.0）与全屏态（density 1.5）之间
+ * 窗口尺寸与 density 会同时变化，因此缩放基准不能在模块加载时一次性冻结，
+ * 必须在每次调用时按当前窗口尺寸重新计算，否则小窗下字号/内边距偏大导致溢出。
+ * 模块级常量（如各页面 HEADER_HEIGHT）仍为启动时的取值，属已知取舍；
+ * 需要随窗口实时变化的尺寸请在组件内用 useWindowSize 计算。
  */
-import { PixelRatio } from 'react-native'
+import { Dimensions, PixelRatio } from 'react-native'
 import { windowSizeTools } from './windowSizeTools'
 
 // 高保真的宽度和高度
@@ -13,26 +19,49 @@ const designWidth = 375.0
 const designHeight = 667.0
 
 // 获取屏幕的dp
-const size = windowSizeTools.getSize()
-// console.log('size', size)
-let screenW = size.width
-let screenH = size.height
-if (screenW > screenH) {
-  const temp = screenW
-  screenW = screenH
-  screenH = temp
+const getSize = () => {
+  const size = windowSizeTools.getSize()
+  if (size.width && size.height) return size
+  const window = Dimensions.get('window')
+  return {
+    width: window.width,
+    height: window.height,
+  }
 }
-let fontScale = PixelRatio.getFontScale()
-let pixelRatio = PixelRatio.get()
-// 根据dp获取屏幕的px
-let screenPxW = PixelRatio.getPixelSizeForLayoutSize(screenW)
-let screenPxH = PixelRatio.getPixelSizeForLayoutSize(screenH)
-// console.log(screenPxW, screenPxH)
 
-const scaleW = screenPxW / designWidth
-const scaleH = screenPxH / designHeight
-const scale = Math.min(scaleW, scaleH, 3.1)
-// console.log(scale)
+let sizeKey = ''
+let screenW = 375
+let screenH = 667
+let fontScale = 1
+let pixelRatio = 3
+let screenPxW = 1125
+let screenPxH = 2001
+let scaleW = 3
+let scaleH = 3
+let scale = 1
+
+const updateScale = () => {
+  const size = getSize()
+  const key = `${Math.round(size.width)}x${Math.round(size.height)}`
+  if (key === sizeKey) return
+  sizeKey = key
+  screenW = size.width
+  screenH = size.height
+  if (screenW > screenH) {
+    const temp = screenW
+    screenW = screenH
+    screenH = temp
+  }
+  fontScale = PixelRatio.getFontScale()
+  pixelRatio = PixelRatio.get()
+  // 根据dp获取屏幕的px
+  screenPxW = PixelRatio.getPixelSizeForLayoutSize(screenW)
+  screenPxH = PixelRatio.getPixelSizeForLayoutSize(screenH)
+  scaleW = screenPxW / designWidth
+  scaleH = screenPxH / designHeight
+  scale = Math.min(scaleW, scaleH, 3.1)
+}
+updateScale()
 
 /**
  * 设置text
@@ -40,14 +69,11 @@ const scale = Math.min(scaleW, scaleH, 3.1)
  * @returns dp
  */
 export function getTextSize(size: number) {
-  // console.log('screenW======' + screenW)
-  // console.log('screenPxW======' + screenPxW)
-  let scaleWidth = screenW / designWidth
-  let scaleHeight = screenH / designHeight
-  // console.log(scaleWidth, scaleHeight)
-  let scale = Math.min(scaleWidth, scaleHeight, 1.3)
-  size = Math.floor(size * scale / fontScale)
-  // console.log(size)
+  updateScale()
+  const currentScaleWidth = screenW / designWidth
+  const currentScaleHeight = screenH / designHeight
+  const currentScale = Math.min(currentScaleWidth, currentScaleHeight, 1.3)
+  size = Math.floor(size * currentScale / fontScale)
   return size
 }
 export function setSpText(size: number) {
@@ -60,9 +86,8 @@ export function setSpText(size: number) {
  * @returns dp
  */
 export function scaleSizeH(size: number) {
-  // console.log(screenPxH / designHeight)
-  // let scaleHeight = size * Math.min(screenPxH / designHeight, 3.1)
-  let scaleHeight = size * scale
+  updateScale()
+  const scaleHeight = size * scale
   size = Math.floor(scaleHeight / pixelRatio)
   return size * global.lx.fontSize
 }
@@ -73,9 +98,8 @@ export function scaleSizeH(size: number) {
  * @returns dp
  */
 export function scaleSizeW(size: number) {
-  // console.log(screenPxW / designWidth)
-  // let scaleWidth = size * Math.min(screenPxW / designWidth, 3.1)
-  let scaleWidth = size * scale
+  updateScale()
+  const scaleWidth = size * scale
   size = Math.floor(scaleWidth / pixelRatio)
   return size * global.lx.fontSize
 }
@@ -86,6 +110,7 @@ export const scaleSizeWR = (size: number) => {
 }
 
 export const scaleSizeAbsHR = (size: number) => {
-  let scaleHeight = size * scale
+  updateScale()
+  const scaleHeight = size * scale
   return size * 2 - Math.floor(scaleHeight / pixelRatio)
 }

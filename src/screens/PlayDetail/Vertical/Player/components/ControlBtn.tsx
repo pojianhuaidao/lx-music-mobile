@@ -8,6 +8,7 @@ import { createStyle } from '@/utils/tools'
 import { useWindowSize } from '@/utils/hooks'
 import { BTN_WIDTH } from './MoreBtn/Btn'
 import { useMemo } from 'react'
+import { COMPACT_HEIGHT, COMPACT_WIDTH } from '@/utils/windowBreakpoints'
 
 const PrevBtn = ({ size }: { size: number }) => {
   const theme = useTheme()
@@ -48,13 +49,17 @@ const MIN_SIZE = BTN_WIDTH * 1.2
 export default () => {
   const winSize = useWindowSize()
   const maxHeight = Math.max(winSize.height * 0.11, MIN_SIZE)
+  const isCompact = winSize.width < COMPACT_WIDTH || winSize.height < COMPACT_HEIGHT
   const containerStyle = useMemo(() => {
     return {
       ...styles.conatiner,
       maxHeight,
+      paddingVertical: isCompact ? 8 : 22,
     }
-  }, [maxHeight])
-  const size = Math.min(Math.max(winSize.width * 0.33 * global.lx.fontSize * 0.4, MIN_SIZE), MAX_SIZE, maxHeight)
+  }, [maxHeight, isCompact])
+  // 双小窗并存时可用宽度可能只剩 360dp 左右，需要保证三个按钮整体不超出窗口
+  const maxWidthSize = Math.max((winSize.width * 0.96 - 24) / 3, 28)
+  const size = Math.min(Math.max(winSize.width * 0.33 * global.lx.fontSize * 0.4, MIN_SIZE), MAX_SIZE, maxHeight, maxWidthSize)
 
   return (
     <View style={containerStyle}>

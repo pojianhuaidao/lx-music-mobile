@@ -23,6 +23,12 @@ const styles = createStyle({
     paddingTop: 15,
     paddingBottom: 15,
     flex: 0,
+    // 小窗态主内容区必须占满剩余宽度，否则内容按固有宽度撑开导致右侧被裁切
+    width: '100%',
+  },
+  scroll: {
+    flex: 1,
+    flexShrink: 1,
   },
 })
 
@@ -35,7 +41,7 @@ export default () => {
       <View style={{ ...styles.nav, borderRightColor: theme['c-border-background'] }}>
         <NavList onChangeId={(id) => mainRef.current?.setActiveId(id)} />
       </View>
-      <ScrollView keyboardShouldPersistTaps={'always'}>
+      <ScrollView style={styles.scroll} keyboardShouldPersistTaps={'always'}>
         <View style={styles.main}>
           <Main ref={mainRef} />
         </View>

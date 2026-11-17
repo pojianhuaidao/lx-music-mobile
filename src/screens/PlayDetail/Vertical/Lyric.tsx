@@ -8,6 +8,8 @@ import { useTheme } from '@/store/theme/hook'
 import { useSettingValue } from '@/store/setting/hook'
 import { AnimatedColorText } from '@/components/common/Text'
 import { setSpText } from '@/utils/pixelRatio'
+import { useWindowSize } from '@/utils/hooks'
+import { COMPACT_WIDTH } from '@/utils/windowBreakpoints'
 import playerState from '@/store/player/state'
 import { play } from '@/core/player/player'
 import { scrollTo } from '@/utils/scroll'
@@ -455,6 +457,14 @@ export default () => {
     }
   }, [defaultLineHeight])
 
+  const winSize = useWindowSize()
+  // 小窗/双小窗并存时窗口变窄，固定 20dp 左右内边距会明显压缩歌词可用宽度
+  const listStyle = useMemo(() => ({
+    ...styles.container,
+    paddingLeft: winSize.width < COMPACT_WIDTH ? 8 : winSize.width < 640 ? 14 : 20,
+    paddingRight: winSize.width < COMPACT_WIDTH ? 8 : winSize.width < 640 ? 14 : 20,
+  }), [winSize.width])
+
   const renderItem: FlatListType['renderItem'] = ({ item, index }) => {
     return (
       <LrcLine line={item} lineNum={index} activeLine={line} onLayout={handleLineLayout} onPress={handleLinePress} />
@@ -472,7 +482,7 @@ export default () => {
         data={lyricLines}
         renderItem={renderItem}
         keyExtractor={getkey}
-        style={styles.container}
+        style={listStyle}
         ref={flatListRef}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={spaceComponent}
