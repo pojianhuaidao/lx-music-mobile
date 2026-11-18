@@ -8,6 +8,7 @@ import { useTheme } from '@/store/theme/hook'
 import { useSettingValue } from '@/store/setting/hook'
 import { AnimatedColorText } from '@/components/common/Text'
 import { setSpText } from '@/utils/pixelRatio'
+import { useWindowSize } from '@/utils/hooks'
 import playerState from '@/store/player/state'
 import { play } from '@/core/player/player'
 import { scrollTo } from '@/utils/scroll'
@@ -79,6 +80,16 @@ const LrcLine = memo(({ line, lineNum, activeLine, onLayout, onPress }: LineProp
 })
 const wait = async() => new Promise(resolve => setTimeout(resolve, 100))
 const LYRIC_RESTORE_DELAY = 5000
+// 手动浏览歌词的兜底看门狗：拖拽/惯性结束事件丢失时强制恢复自动滚动，
+// 避免 isPauseScrollRef 永久停在 true 导致歌词再也不跟随进度
+const LYRIC_SCROLL_PAUSE_WATCHDOG = 8000
+// 行切换后的滚动启动延迟。原实现为 600ms：当连续两行间隔短于 600ms（密集段落），
+// 每行都会重置定时器，滚动被无限推迟，表现为「高亮在走、画面停在旧行」。
+const LYRIC_SCROLL_DELAY = 120
+const LYRIC_ACTIVE_LINE_POSITION = 0.42
+// 首屏固定渲染行数。原实现绑定当前播放行号，播放行变化会不断改变渲染窗口，
+// 造成行高测量错位与额外重渲染
+const LYRIC_INITIAL_NUM_TO_RENDER = 20
 
 export default () => {
   const lyricLines = useLrcSet()
@@ -90,12 +101,18 @@ export default () => {
   const isPauseScrollRef = useRef(true)
   const scrollTimoutRef = useRef<NodeJS.Timeout | null>(null)
   const delayScrollTimeout = useRef<NodeJS.Timeout | null>(null)
+  const pauseScrollWatchdogRef = useRef<NodeJS.Timeout | null>(null)
   const lineRef = useRef({ line: 0, prevLine: 0 })
   const isFirstSetLrc = useRef(true)
   const scrollInfoRef = useRef<NativeSyntheticEvent<NativeScrollEvent>['nativeEvent'] | null>(null)
+  // FlatList 实测可视高度，窗口形态切换后 onScroll 未必立刻触发，用实测值避免按旧高度对齐
+  const listHeightRef = useRef(0)
   const listLayoutInfoRef = useRef<{ spaceHeight: number, lineHeights: number[] }>({ spaceHeight: 0, lineHeights: [] })
   const scrollCancelRef = useRef<(() => void) | null>(null)
   const isShowLyricProgressSetting = useSettingValue('playDetail.isShowLyricProgressSetting')
+  const lrcFontSize = useSettingValue('playDetail.horizontal.style.lrcFontSize')
+  // 尚未测量到真实行高时的估算行高，与 LrcLine 的字体行高 + 上下 padding 保持一致
+  const defaultLineHeight = useMemo(() => setSpText(lrcFontSize / 10) * 1.3 + 20, [lrcFontSize])
   // useLock()
   // const [imgUrl, setImgUrl] = useState(null)
   // const theme = useGetter('common', 'theme')
@@ -111,33 +128,73 @@ export default () => {
   // const imgWidth = useMemo(() => layout.width * 0.75, [layout.width])
   const handleScrollToActive = (index = lineRef.current.line) => {
     if (index < 0) return
-    if (flatListRef.current) {
-      // console.log('handleScrollToActive', index)
-      if (scrollInfoRef.current && lineRef.current.line - lineRef.current.prevLine == 1) {
-        let offset = listLayoutInfoRef.current.spaceHeight
-        for (let line = 0; line < index; line++) {
-          offset += listLayoutInfoRef.current.lineHeights[line]
-        }
-        offset += (listLayoutInfoRef.current.lineHeights[line] ?? 0) / 2
-        try {
-          scrollCancelRef.current = scrollTo(flatListRef.current, scrollInfoRef.current, offset - scrollInfoRef.current.layoutMeasurement.height * 0.42, 600, () => {
-            scrollCancelRef.current = null
-          })
-        } catch {}
-      } else {
-        if (scrollCancelRef.current) {
-          scrollCancelRef.current()
+    const flatList = flatListRef.current
+    if (!flatList) return
+    // 逐项判空：行高是懒测量写入 lineHeights 的，数组中间很容易出现空洞；
+    // 原实现直接累加会让 offset 变成 NaN，而 scrollToOffset(NaN) 既不报错也不滚动，
+    // 表现为歌词永久卡在旧行。这里用估算行高兜底，保证 offset 一定是有限值。
+    const { spaceHeight, lineHeights } = listLayoutInfoRef.current
+    let offset = Number.isFinite(spaceHeight) ? spaceHeight : 0
+    for (let i = 0; i < index; i++) {
+      const height = lineHeights[i]
+      offset += Number.isFinite(height) ? height : defaultLineHeight
+    }
+    const activeLineHeight = lineHeights[index]
+    offset += (Number.isFinite(activeLineHeight) ? activeLineHeight : defaultLineHeight) / 2
+    const scrollInfo = scrollInfoRef.current
+    const viewHeight = listHeightRef.current > 0 ? listHeightRef.current : (scrollInfo ? scrollInfo.layoutMeasurement.height : 0)
+    const target = offset - viewHeight * LYRIC_ACTIVE_LINE_POSITION
+    if (scrollInfo && Number.isFinite(target) && lineRef.current.line - lineRef.current.prevLine == 1) {
+      if (scrollCancelRef.current) {
+        scrollCancelRef.current()
+        scrollCancelRef.current = null
+      }
+      try {
+        scrollCancelRef.current = scrollTo(flatList, scrollInfo, target, 600, () => {
           scrollCancelRef.current = null
-        }
-        try {
-          flatListRef.current.scrollToIndex({
-            index,
-            animated: true,
-            viewPosition: 0.42,
-          })
-        } catch {}
+        })
+        return
+      } catch (err) {
+        console.warn('[Lyric] scrollTo failed, fallback to scrollToIndex', err)
       }
     }
+    if (scrollCancelRef.current) {
+      scrollCancelRef.current()
+      scrollCancelRef.current = null
+    }
+    try {
+      flatList.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: LYRIC_ACTIVE_LINE_POSITION,
+      })
+    } catch (err) {
+      console.warn('[Lyric] scrollToIndex failed', err)
+    }
+  }
+
+  const clearPauseScrollWatchdog = () => {
+    if (!pauseScrollWatchdogRef.current) return
+    clearTimeout(pauseScrollWatchdogRef.current)
+    pauseScrollWatchdogRef.current = null
+  }
+  const restoreAutoScroll = () => {
+    if (!isPauseScrollRef.current) return
+    if (scrollTimoutRef.current) {
+      clearTimeout(scrollTimoutRef.current)
+      scrollTimoutRef.current = null
+    }
+    clearPauseScrollWatchdog()
+    playLineRef.current?.setVisible(false)
+    isPauseScrollRef.current = false
+    handleScrollToActive()
+  }
+  const startPauseScrollWatchdog = () => {
+    clearPauseScrollWatchdog()
+    pauseScrollWatchdogRef.current = setTimeout(() => {
+      pauseScrollWatchdogRef.current = null
+      restoreAutoScroll()
+    }, LYRIC_SCROLL_PAUSE_WATCHDOG)
   }
 
   const handleScroll = ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -161,6 +218,8 @@ export default () => {
       scrollCancelRef.current()
       scrollCancelRef.current = null
     }
+    // 一进入手动浏览就启动看门狗，保证即使后续结束事件全部丢失也能自动恢复滚动
+    startPauseScrollWatchdog()
   }
 
   const onScrollEndDrag = () => {
@@ -172,6 +231,14 @@ export default () => {
       isPauseScrollRef.current = false
       handleScrollToActive()
     }, LYRIC_RESTORE_DELAY)
+    startPauseScrollWatchdog()
+  }
+
+  const handleMomentumScrollEnd = () => {
+    // 惯性滚动结束才是手动浏览真正结束的信号，这里重启恢复计时，
+    // 否则 5s 计时可能在惯性滑动过程中就被消耗掉
+    if (!isPauseScrollRef.current) return
+    onScrollEndDrag()
   }
 
 
@@ -185,6 +252,10 @@ export default () => {
         clearTimeout(scrollTimoutRef.current)
         scrollTimoutRef.current = null
       }
+      if (pauseScrollWatchdogRef.current) {
+        clearTimeout(pauseScrollWatchdogRef.current)
+        pauseScrollWatchdogRef.current = null
+      }
     }
   }, [])
 
@@ -193,6 +264,16 @@ export default () => {
     listLayoutInfoRef.current.lineHeights = []
     lineRef.current.prevLine = 0
     lineRef.current.line = 0
+    // 换歌词后旧的滚动定时器与看门狗必须失效，否则会对新列表按旧位置滚动
+    clearPauseScrollWatchdog()
+    if (scrollTimoutRef.current) {
+      clearTimeout(scrollTimoutRef.current)
+      scrollTimoutRef.current = null
+    }
+    if (delayScrollTimeout.current) {
+      clearTimeout(delayScrollTimeout.current)
+      delayScrollTimeout.current = null
+    }
     if (!flatListRef.current) return
     flatListRef.current.scrollToOffset({
       offset: 0,
@@ -218,10 +299,21 @@ export default () => {
   }, [lyricLines])
 
   useEffect(() => {
-    if (line < 0) return
+    // line 为负表示当前无歌词/尚未开始，此时也要同步 prevLine，
+    // 否则下次进入歌词时会被误判成「跳行」，丢失逐行平滑滚动
+    if (line < 0) {
+      lineRef.current.prevLine = lineRef.current.line
+      return
+    }
     lineRef.current.prevLine = lineRef.current.line
     lineRef.current.line = line
     if (!flatListRef.current || isPauseScrollRef.current) return
+
+    // 先清掉上一行残留的延迟滚动，避免密集段落里多个定时器叠加、滚动被无限推迟
+    if (delayScrollTimeout.current) {
+      clearTimeout(delayScrollTimeout.current)
+      delayScrollTimeout.current = null
+    }
 
     if (line - lineRef.current.prevLine != 1) {
       handleScrollToActive()
@@ -231,7 +323,7 @@ export default () => {
     delayScrollTimeout.current = setTimeout(() => {
       delayScrollTimeout.current = null
       handleScrollToActive()
-    }, 600)
+    }, LYRIC_SCROLL_DELAY)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [line])
 
@@ -249,6 +341,38 @@ export default () => {
     })
   }
 
+  // 横屏歌词原实现没有 getItemLayout，scrollToIndex 依赖逐行测量，
+  // 未渲染到的行会走 onScrollToIndexFailed → 100ms 后再试的循环，密集段落极易滚不动。
+  // 这里用「已测量行高 + 估算行高」拼出确定偏移，保证 scrollToIndex 一定能落位。
+  const getItemLayout: FlatListType['getItemLayout'] = useCallback((_data: ArrayLike<Line> | null | undefined, index: number) => {
+    const { spaceHeight, lineHeights } = listLayoutInfoRef.current
+    let offset = Number.isFinite(spaceHeight) ? spaceHeight : 0
+    for (let i = 0; i < index; i++) {
+      const height = lineHeights[i]
+      offset += Number.isFinite(height) ? height : defaultLineHeight
+    }
+    const height = lineHeights[index]
+    return {
+      length: Number.isFinite(height) ? height : defaultLineHeight,
+      offset,
+      index,
+    }
+  }, [defaultLineHeight])
+
+  const winSize = useWindowSize()
+  // 窗口尺寸变化（全屏 ↔ 系统虚拟 PiP、分屏、旋屏）后行高与可视高度都会变，
+  // 需要按新高度重新对齐当前播放行，否则滚动基准仍是旧尺寸，看起来像「歌词不再跟随」
+  useEffect(() => {
+    if (!flatListRef.current) return
+    // 用户正在手动浏览歌词时不要抢滚动
+    if (isPauseScrollRef.current) return
+    const timer = setTimeout(() => {
+      handleScrollToActive()
+    }, 120)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winSize.width, winSize.height])
+
   const handleLineLayout = useCallback<LineProps['onLayout']>((lineNum, height) => {
     listLayoutInfoRef.current.lineHeights[lineNum] = height
     playLineRef.current?.updateLayoutInfo(listLayoutInfoRef.current)
@@ -257,6 +381,10 @@ export default () => {
   const handleSpaceLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
     listLayoutInfoRef.current.spaceHeight = nativeEvent.layout.height
     playLineRef.current?.updateLayoutInfo(listLayoutInfoRef.current)
+  }, [])
+
+  const handleListLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
+    listHeightRef.current = nativeEvent.layout.height
   }, [])
 
   const handlePlayLine = useCallback((time: number) => {
@@ -308,10 +436,13 @@ export default () => {
         ListFooterComponent={spaceComponent}
         onScrollBeginDrag={handleScrollBeginDrag}
         onScrollEndDrag={onScrollEndDrag}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         fadingEdgeLength={100}
-        initialNumToRender={Math.max(line + 10, 10)}
+        initialNumToRender={LYRIC_INITIAL_NUM_TO_RENDER}
+        getItemLayout={getItemLayout}
         onScrollToIndexFailed={handleScrollToIndexFailed}
         onScroll={handleScroll}
+        onLayout={handleListLayout}
       />
       { isShowLyricProgressSetting ? <PlayLine ref={playLineRef} onPlayLine={handlePlayLine} /> : null }
     </>

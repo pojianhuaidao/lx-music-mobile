@@ -3,7 +3,6 @@ import {
   Dirs,
   FileSystem,
   AndroidScoped,
-  type OpenDocumentOptions,
   type Encoding,
   type HashAlgorithm,
   getExternalStoragePaths as _getExternalStoragePaths,
@@ -23,8 +22,8 @@ export const privateStorageDirectoryPath = Dirs.DocumentDir
 
 export const getExternalStoragePaths = async(is_removable?: boolean) => _getExternalStoragePaths(is_removable)
 
-export const selectManagedFolder = async(isPersist: boolean = false) => AndroidScoped.openDocumentTree(isPersist)
-export const selectFile = async(options: OpenDocumentOptions) => AndroidScoped.openDocument(options)
+// 系统文件选择器（SAF：openDocumentTree / openDocument）已全部移除，
+// 导入音源、本地音频目录等文件/目录选择统一走应用内置文件浏览器（components/common/ChoosePath）
 export const removeManagedFolder = async(path: string) => AndroidScoped.releasePersistableUriPermission(path)
 export const getManagedFolders = async() => AndroidScoped.getPersistedUriPermissions()
 

@@ -20,9 +20,16 @@ public class MainActivity extends NavigationActivity {
 
   /**
    * 统一延迟补刷：同一次前台恢复中 onNewIntent / onMultiWindowModeChanged 可能接连触发，
-   * 先 removeCallbacks 合并为一次，配合 JS 层 refreshOnForeground 防抖，避免两次刷新导致
+   * 先 removeCallbacks 合并为一次批次，配合 JS 层 refreshOnForeground 防抖，避免两次刷新导致
    * 画中画点击图标偶发闪烁；延迟同时保证 deeplink 路由处理完成后再刷新。
+   *
+   * 系统小窗（尤其是车机虚拟 PiP）的窗口 Surface 尺寸是分阶段收敛的：系统先给一个过渡尺寸，
+   * 过渡动画结束后才稳定。原来只在 500ms 补刷一次，很容易落在过渡帧上，
+   * 之后再没有任何重绘，小窗里就会一直停留在旧画面（画面不跟随当前状态）。
+   * 因此在多个时间点各补刷一次：首段用于快速换帧，末段保证过渡结束后按最终尺寸重新布局。
    */
+  private static final long[] REFRESH_DELAYS = { 160L, 480L, 900L, 1600L };
+
   private final Runnable delayedRefreshRunnable = new Runnable() {
     @Override
     public void run() {
@@ -125,11 +132,14 @@ public class MainActivity extends NavigationActivity {
   }
 
   /**
-   * 统一延迟补刷入口：同一批生命周期回调只保留最后一次，避免多次重绘造成闪烁。
+   * 统一延迟补刷入口：同一批生命周期回调先清掉上一批，再按多个时间点各排一次，
+   * 覆盖车机小窗过渡动画期间尺寸收敛的整个过程。
    */
   private void scheduleDelayedRefresh() {
     mainHandler.removeCallbacks(delayedRefreshRunnable);
-    mainHandler.postDelayed(delayedRefreshRunnable, 500);
+    for (long delay : REFRESH_DELAYS) {
+      mainHandler.postDelayed(delayedRefreshRunnable, delay);
+    }
   }
 
   /**
@@ -163,17 +173,23 @@ public class MainActivity extends NavigationActivity {
       if (getWindow() == null) return;
       final android.view.View decorView = getWindow().getDecorView();
       if (decorView != null) {
+        // forceLayout 会把 measure 请求标记为强制，即使尺寸数值没变也会重新测量一次，
+        // 这是「全屏 → 小窗尺寸数值恰好相同但 Surface 已换」时唤醒重新布局的关键
+        decorView.forceLayout();
         decorView.requestLayout();
         decorView.invalidate();
         decorView.postInvalidateOnAnimation();
       }
       final android.view.View contentView = findViewById(android.R.id.content);
       if (contentView != null) {
+        contentView.forceLayout();
         contentView.requestLayout();
         contentView.invalidate();
         contentView.post(() -> {
           try {
             if (!contentView.isAttachedToWindow()) return;
+            contentView.forceLayout();
+            contentView.requestLayout();
             contentView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
             contentView.post(() -> {
               try {

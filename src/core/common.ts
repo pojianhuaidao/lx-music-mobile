@@ -1,5 +1,5 @@
 import { hideDesktopLyric } from './desktopLyric'
-import { exitApp as utilExitApp } from '@/utils/nativeModules/utils'
+import { exitApp as utilExitApp, isExternalStorageManager, requestManageExternalStorage } from '@/utils/nativeModules/utils'
 import { destroy as destroyPlayer } from '@/plugins/player/utils'
 import { initSetting as initAppSetting } from '@/config/setting'
 import { setLanguage as applyLanguage } from '@/lang/i18n'
@@ -12,10 +12,9 @@ import commonState, { type InitState as CommonStateType } from '@/store/common/s
 import { storageDataPrefix } from '@/config/constant'
 import { saveData } from '@/plugins/storage'
 import { throttle } from '@/utils/common'
-import { getSelectedManagedFolder, saveFontSize, saveViewPrevState, setSelectedManagedFolder } from '@/utils/data'
+import { saveFontSize, saveViewPrevState } from '@/utils/data'
 import { showPactModal as handleShowPactModal } from '@/navigation'
 import { hideDesktopLyricView } from '@/utils/nativeModules/lyricDesktop'
-import { getPersistedUriList, selectManagedFolder } from '@/utils/fs'
 
 
 const throttleSaveSetting = throttle(() => {
@@ -94,19 +93,18 @@ export const showPactModal = () => {
 }
 
 export const checkStoragePermissions = async() => {
-  const selectedManagedFolder = await getSelectedManagedFolder()
-  if (selectedManagedFolder) return (await getPersistedUriList()).some(uri => selectedManagedFolder.startsWith(uri))
-  return false
+  // 车机上内置文件浏览器直接按真实路径（/storage/emulated/0 等）读取目录，
+  // 不再依赖 SAF 受管目录授权，因此这里只判断「所有文件访问权限」是否已授予。
+  // Android 11+ 由 MANAGE_EXTERNAL_STORAGE 决定，低版本原生侧默认返回 true。
+  return isExternalStorageManager()
 }
 
 export const requestStoragePermission = async() => {
   const isGranted = await checkStoragePermissions()
   if (isGranted) return isGranted
-
-  const uri = await selectManagedFolder()
-  if (!uri.isDirectory) return false
-  await setSelectedManagedFolder(uri.path)
-  return true
+  // 直接申请「所有文件访问权限」，不再拉起系统文件夹选择器（SAF openDocumentTree），
+  // 避免选完目录仍拿不到真实路径、内置浏览器又无法进入外部存储的空转现象。
+  return requestManageExternalStorage()
 }
 
 export const setBgPic = (pic: string | null) => {

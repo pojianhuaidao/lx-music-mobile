@@ -128,6 +128,9 @@ const LYRIC_SCROLL_PAUSE_WATCHDOG = 8000
 // 播放行变化会不断改变渲染窗口，造成行高测量错位与额外重渲染
 const LYRIC_INITIAL_NUM_TO_RENDER = 20
 const LYRIC_ACTIVE_LINE_POSITION = 0.42
+// 行切换后的滚动启动延迟。原实现为 600ms：当连续两行间隔短于 600ms（密集段落/快歌），
+// 每行的定时器都会被下一行清掉重建，滚动被无限推迟，表现为「高亮在走、画面停在旧行」
+const LYRIC_SCROLL_DELAY = 120
 
 export default () => {
   const lyricLines = useLrcSet()
@@ -145,6 +148,9 @@ export default () => {
   const lineRef = useRef({ line: 0, prevLine: 0 })
   const isFirstSetLrc = useRef(true)
   const scrollInfoRef = useRef<NativeSyntheticEvent<NativeScrollEvent>['nativeEvent'] | null>(null)
+  // FlatList 实测可视高度。窗口形态切换（全屏 ↔ 系统虚拟 PiP / 分屏）后 onScroll 不一定立刻触发，
+  // 只读 scrollInfo.layoutMeasurement 会继续用旧高度算滚动目标，导致对不齐当前行
+  const listHeightRef = useRef(0)
   const listLayoutInfoRef = useRef<{ spaceHeight: number, lineHeights: number[] }>({ spaceHeight: 0, lineHeights: [] })
   const scrollCancelRef = useRef<(() => void) | null>(null)
   const isShowLyricProgressSetting = useSettingValue('playDetail.isShowLyricProgressSetting')
@@ -197,7 +203,9 @@ export default () => {
 
     if (canScrollByOffset && scrollInfoRef.current) {
       const scrollInfo = scrollInfoRef.current
-      const target = offset - scrollInfo.layoutMeasurement.height * LYRIC_ACTIVE_LINE_POSITION
+      // 可视高度优先用 FlatList 自身 onLayout 的实测值，避免切到小窗后仍按全屏高度对齐
+      const viewHeight = listHeightRef.current > 0 ? listHeightRef.current : scrollInfo.layoutMeasurement.height
+      const target = offset - viewHeight * LYRIC_ACTIVE_LINE_POSITION
       if (Number.isFinite(target)) {
         if (scrollCancelRef.current) {
           scrollCancelRef.current()
@@ -365,7 +373,12 @@ export default () => {
   }, [lyricLines])
 
   useEffect(() => {
-    if (line < 0) return
+    // line 为负表示当前无歌词/尚未开始，此时也要同步 prevLine，
+    // 否则下次进入歌词时会被误判成「跳行」，丢失逐行平滑滚动
+    if (line < 0) {
+      lineRef.current.prevLine = lineRef.current.line
+      return
+    }
     lineRef.current.prevLine = lineRef.current.line
     lineRef.current.line = line
     if (!flatListRef.current || isPauseScrollRef.current) return
@@ -384,7 +397,7 @@ export default () => {
     delayScrollTimeout.current = setTimeout(() => {
       delayScrollTimeout.current = null
       handleScrollToActive()
-    }, 600)
+    }, LYRIC_SCROLL_DELAY)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [line])
 
@@ -410,6 +423,10 @@ export default () => {
   const handleSpaceLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
     listLayoutInfoRef.current.spaceHeight = nativeEvent.layout.height
     playLineRef.current?.updateLayoutInfo(listLayoutInfoRef.current)
+  }, [])
+
+  const handleListLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
+    listHeightRef.current = nativeEvent.layout.height
   }, [])
 
   const handlePlayLine = useCallback((time: number) => {
@@ -458,6 +475,18 @@ export default () => {
   }, [defaultLineHeight])
 
   const winSize = useWindowSize()
+  // 窗口尺寸变化（全屏 ↔ 系统虚拟 PiP、分屏、旋屏）后列表行高与可视高度都会变，
+  // 需要按新高度重新对齐当前播放行，否则滚动基准还是旧尺寸，看起来像「歌词不再跟随」
+  useEffect(() => {
+    if (!flatListRef.current) return
+    // 用户正在手动浏览歌词时不要抢滚动
+    if (isPauseScrollRef.current) return
+    const timer = setTimeout(() => {
+      handleScrollToActive()
+    }, 120)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winSize.width, winSize.height])
   // 小窗/双小窗并存时窗口变窄，固定 20dp 左右内边距会明显压缩歌词可用宽度
   const listStyle = useMemo(() => ({
     ...styles.container,
@@ -495,6 +524,7 @@ export default () => {
         getItemLayout={getItemLayout}
         onScrollToIndexFailed={handleScrollToIndexFailed}
         onScroll={handleScroll}
+        onLayout={handleListLayout}
       />
       { isShowLyricProgressSetting ? <PlayLine ref={playLineRef} onPlayLine={handlePlayLine} /> : null }
     </>

@@ -363,8 +363,6 @@
   "setting_basic_theme_icon_theme_default": "原版",
   "setting_basic_theme_icon_theme_tabler": "Tabler",
   "setting_basic_theme_icon_theme_iconoir": "Iconoir",
-  "setting_basic_use_system_file_selector": "使用系統檔案選取器",
-  "setting_basic_use_system_file_selector_tip": "啟用該選項後，匯入備份檔案、自訂來源 API 等操作將不需要申請儲存權限，但可能在某些系統上不可用。\n\n若啟用該選項後無法匯入檔案，則可關閉該選項，回退到軟體內建檔案選取器。",
   "setting_dislike_list_input_tip": "標題@演出者\n標題\n@演出者",
   "setting_dislike_list_tips": "1. 每條一行，若歌曲或者演出者名字中存在「@」符號，需要將其取代成「#」\n2. 指定某演出者的某首歌：標題@演出者\n3. 指定某首歌：演出者\n4. 指定某演出者：@演出者",
   "setting_list": "清單設定",

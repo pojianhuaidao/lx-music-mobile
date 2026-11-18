@@ -5,13 +5,8 @@ import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
 import List, { type ListType } from './List'
 
 import ConfirmAlert, { type ConfirmAlertType } from '@/components/common/ConfirmAlert'
-import { toast, TEMP_FILE_PATH, checkStoragePermissions, requestStoragePermission, confirmDialog } from '@/utils/tools'
+import { toast, checkStoragePermissions, requestStoragePermission } from '@/utils/tools'
 import { useI18n } from '@/lang'
-import { selectFile, unlink } from '@/utils/fs'
-import { useUnmounted } from '@/utils/hooks'
-import settingState from '@/store/setting/state'
-import { log } from '@/utils/log'
-import { updateSetting } from '@/core/common'
 
 export interface ReadOptions {
   title: string
@@ -37,7 +32,6 @@ export default forwardRef<ChoosePathType, ChoosePathProps>(({
   const confirmAlertRef = useRef<ConfirmAlertType>(null)
   const [deny, setDeny] = useState(false)
   const readOptions = useRef<ReadOptions>(initReadOptions as ReadOptions)
-  const isUnmounted = useUnmounted()
 
   const handleOpenExternalStorage = async(options: ReadOptions) => {
     return checkStoragePermissions().then(isGranted => {
@@ -52,44 +46,10 @@ export default forwardRef<ChoosePathType, ChoosePathProps>(({
 
   useImperativeHandle(ref, () => ({
     show(options) {
-      if (!settingState.setting['common.useSystemFileSelector'] || options.dirOnly) {
-        // if (options.isPersist) {
-        void handleOpenExternalStorage(options)
-        // } else {
-        //   void selectManagedFolder().then((dir) => {
-        //     if (!dir || isUnmounted.current) return
-        //     listRef.current?.show(options.title, dir.path, options.dirOnly, options.filter)
-        //   })
-        // }
-      } else {
-        void selectFile({
-          extTypes: options.filter,
-          toPath: TEMP_FILE_PATH,
-        }).then((file) => {
-          // console.log(file)
-          if (!file || isUnmounted.current) return
-          if (options.filter && !options.filter.some(ext => file.data.endsWith('.' + ext))) {
-            toast(t('storage_file_no_match'), 'long')
-            void unlink(file.data)
-            return
-          }
-          onConfirm(file.data)
-        }).catch(err => {
-          if (isUnmounted.current) return
-          log.warn('open document failed: ' + err.message)
-          void confirmDialog({
-            message: t('storage_file_no_select_file_failed_tip'),
-            bgClose: false,
-          }).then((confirm) => {
-            if (!confirm) {
-              toast(t('disagree_tip'), 'long')
-              return
-            }
-            updateSetting({ 'common.useSystemFileSelector': false })
-            void handleOpenExternalStorage(options)
-          })
-        })
-      }
+      // 统一走内置文件浏览器（List）：系统文件选择器（SAF openDocument）在车机上
+      // 常常选不到外部存储里的文件、或返回 content:// 后无法读取，因此移除该分支，
+      // 导入音源、本地音频目录选择等所有场景都只保留内置浏览器。
+      void handleOpenExternalStorage(options)
     },
   }))
 

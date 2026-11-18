@@ -4,13 +4,10 @@ import Input, { type InputType } from '@/components/common/Input'
 import Text from '@/components/common/Text'
 import ConfirmAlert, { type ConfirmAlertType } from '@/components/common/ConfirmAlert'
 import { createStyle, toast } from '@/utils/tools'
-import { getManagedFolders, stat, removeManagedFolder, selectManagedFolder } from '@/utils/fs'
+import { stat } from '@/utils/fs'
 import { useTheme } from '@/store/theme/hook'
 import { getOpenStoragePath, saveOpenStoragePath } from '@/utils/data'
 import Button from '@/components/common/Button'
-import ButtonPrimary from '@/components/common/ButtonPrimary'
-import { useUnmounted } from '@/utils/hooks'
-import { Icon } from '@/components/common/Icon'
 import type { PathItem } from './ListItem'
 const filterFileName = /[\\:*?#"<>|]/
 
@@ -60,16 +57,11 @@ export default forwardRef<OpenDirModalType, { onOpenDir: (dir: string) => Promis
   const confirmAlertRef = useRef<ConfirmAlertType>(null)
   const inputRef = useRef<PathInputType>(null)
   const [paths, setPaths] = useState<string[]>([])
-  const [contentPaths, setContentPaths] = useState<string[]>([])
-  const isUnmounted = useUnmounted()
-  const theme = useTheme()
 
   useImperativeHandle(ref, () => ({
     show(paths) {
       setPaths(paths)
-      void getManagedFolders().then((dirs) => {
-        setContentPaths(dirs)
-      })
+      // 已移除 SAF 授权目录（getManagedFolders）入口，存储路径只通过手动输入或内置浏览定位
       confirmAlertRef.current?.setVisible(true)
       requestAnimationFrame(() => {
         void getOpenStoragePath().then(path => {
@@ -85,7 +77,8 @@ export default forwardRef<OpenDirModalType, { onOpenDir: (dir: string) => Promis
   const handleConfirmAlert = async() => {
     const text = inputRef.current?.getText() ?? ''
     if (text) {
-      if (!text.startsWith('content://') && (!text.startsWith('/') || filterFileName.test(text))) {
+      // 统一只接受可读的绝对文件路径，不再支持 content:// (SAF) URI
+      if (!text.startsWith('/') || filterFileName.test(text)) {
         toast(global.i18n.t('open_storage_error_tip'), 'long')
         return
       }
@@ -102,22 +95,6 @@ export default forwardRef<OpenDirModalType, { onOpenDir: (dir: string) => Promis
     }
     void saveOpenStoragePath(text)
     confirmAlertRef.current?.setVisible(false)
-  }
-  const removeSelectStoragePath = (path: string) => {
-    void removeManagedFolder(path).then(async() => {
-      return getManagedFolders().then((dirs) => {
-        setContentPaths(dirs)
-      })
-    })
-  }
-  const handleSelectStorage = () => {
-    void selectManagedFolder(true).then((dir) => {
-      if (!dir || isUnmounted.current) return
-      void onOpenDir(dir.path)
-      confirmAlertRef.current?.setVisible(false)
-    }).catch((err) => {
-      toast(global.i18n.t('open_storage_select_managed_folder_failed_tip', { msg: err.message }))
-    })
   }
 
   return (
@@ -144,26 +121,11 @@ export default forwardRef<OpenDirModalType, { onOpenDir: (dir: string) => Promis
               )
             })
           }
-          {
-            contentPaths.map(path => {
-              return (
-                <View style={styles.listContentItem} key={path}>
-                  <Button style={styles.pathBtn} onPress={() => inputRef.current?.setPath(path)}>
-                    <Text size={12}>{path}</Text>
-                  </Button>
-                  <Button style={styles.removeBtn} onPress={() => { removeSelectStoragePath(path) }}>
-                    <Icon color={theme['c-font-label']} name="close" size={12} />
-                  </Button>
-                </View>
-              )
-            })
-          }
         </View>
         <View style={styles.tips}>
           <Text style={styles.tip} size={12}>
-            {global.i18n.t('open_storage_select_path_tip')}
+            {global.i18n.t('open_storage_tip')}
           </Text>
-          <ButtonPrimary style={styles.btn} size={12} onPress={handleSelectStorage}>{global.i18n.t('open_storage_select_path')}</ButtonPrimary>
         </View>
       </View>
     </ConfirmAlert>

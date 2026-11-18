@@ -191,7 +191,7 @@ const handleUpdateMusics = async(filePaths: string[],
 }
 export const handleImportMediaFile = async(listInfo: LX.List.MyListInfo, path: string) => {
   setFetchingListStatus(listInfo.id, true)
-  const files = await scanAudioFiles(path)
+  const files = await scanAudioFiles(path, true)
   if (files.length) {
     const throttleUpdateMusics = createThrottleAddMusics(async(listId, musicInfos) => {
       return updateListMusics(musicInfos.map(info => ({ id: listId, musicInfo: info })))

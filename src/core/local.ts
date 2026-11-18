@@ -1,7 +1,7 @@
 import { localAction, type LocalMusicInfo } from '@/store/local'
-import { scanAudioFiles, readMetadata, type MusicMetadata, type MusicMetadataFull } from '@/utils/localMediaMetadata'
+import { scanAudioFiles, readMetadata, AUDIO_FILE_EXTS, type MusicMetadata, type MusicMetadataFull } from '@/utils/localMediaMetadata'
 import { toast, confirmDialog } from '@/utils/tools'
-import { selectManagedFolder, stat, readDir, externalStorageDirectoryPath, getExternalStoragePaths } from '@/utils/fs'
+import { stat, readDir, externalStorageDirectoryPath, getExternalStoragePaths } from '@/utils/fs'
 import { isExternalStorageManager, requestManageExternalStorage } from '@/utils/nativeModules/utils'
 
 const generateLocalMusicId = (filePath: string): string => {
@@ -62,33 +62,61 @@ const createLocalMusicInfo = async(filePath: string, metadata: MusicMetadataFull
   }
 }
 
-// Collect all audio files recursively
-const collectAudioFiles = async(folderPath: string, allFiles: Array<{ path: string; name: string }>, depth: number = 0): Promise<void> => {
+// 支持的音频扩展名统一由 localMediaMetadata 提供（扩展名兜底判断，避免部分 ROM 返回 mimeType 为空导致漏识别）
+// 递归深度上限：防止异常目录结构（符号链接环/超深目录）把扫描拖死
+const MAX_SCAN_DEPTH = 16
+
+// 扫描进度节流：大目录下逐文件上报会让 JS 线程空转，这里每 150ms 或每 100 个文件才上报一次
+let lastProgressAt = 0
+const reportScanProgress = (current: number, total: number, currentFile: string, force = false) => {
+  const now = Date.now()
+  if (!force && now - lastProgressAt < 150) return
+  lastProgressAt = now
+  localAction.updateScanProgress({ current, total, currentFile })
+}
+
+// Collect all audio files recursively（递归遍历所有层级子目录）
+const collectAudioFiles = async(
+  folderPath: string,
+  allFiles: Array<{ path: string; name: string }>,
+  depth: number = 0,
+  visited: Set<string> = new Set(),
+): Promise<void> => {
+  if (depth > MAX_SCAN_DEPTH) return
+  // 目录去重：某些 ROM 的符号链接会让同一目录被反复遍历
+  const visitKey = folderPath.toLowerCase()
+  if (visited.has(visitKey)) return
+  visited.add(visitKey)
+
+  let items: Awaited<ReturnType<typeof readDir>>
   try {
-    const items = await readDir(folderPath)
-    for (const item of items) {
-      const itemPath = item.path || (folderPath + '/' + item.name)
-      // Use isDirectory property from react-native-file-system
-      if (item.isDirectory) {
-        // Skip hidden and system folders
-        if (item.name.startsWith('.') || item.name === 'Android') continue
-        await collectAudioFiles(itemPath, allFiles, depth + 1)
-      } else if (item.isFile) {
-        const ext = (item.name || '').split('.').pop()?.toLowerCase() || ''
-        const isAudio = item.mimeType?.startsWith('audio/') || ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'aac'].includes(ext)
-        if (isAudio) {
-          allFiles.push({ path: itemPath, name: item.name || '' })
-          // 分层上报：total 用已发现数动态更新，让扫描进度尽早可见
-          localAction.updateScanProgress({
-            current: allFiles.length,
-            total: allFiles.length,
-            currentFile: item.name || '',
-          })
-        }
-      }
-    }
+    items = await readDir(folderPath)
   } catch (e) {
-    // Ignore errors for inaccessible folders
+    // 单个目录不可读（权限/坏目录）不影响其它子目录继续扫描
+    return
+  }
+
+  for (const item of items) {
+    const itemName = item.name || ''
+    if (!itemName) continue
+    const itemPath = item.path || (folderPath + '/' + itemName)
+
+    // 优先用 isDirectory 判定；部分实现只提供 isFile，这里做双向兜底
+    const isDirectory = item.isDirectory ?? (item.isFile === false)
+    if (isDirectory) {
+      // 跳过隐藏目录与系统目录（Android/data 等不可读，且不属于音乐库范围）
+      if (itemName.startsWith('.') || itemName === 'Android' || itemName === 'LOST.DIR') continue
+      await collectAudioFiles(itemPath, allFiles, depth + 1, visited)
+      continue
+    }
+
+    const ext = itemName.split('.').pop()?.toLowerCase() || ''
+    const isAudio = item.mimeType?.startsWith('audio/') || AUDIO_FILE_EXTS.includes(ext)
+    if (!isAudio) continue
+
+    allFiles.push({ path: itemPath, name: itemName })
+    // 分层上报：total 用已发现数动态更新，让扫描进度尽早可见
+    reportScanProgress(allFiles.length, allFiles.length, itemName)
   }
 }
 
@@ -169,21 +197,19 @@ export const scanFolderFiles = async(folderPath: string, recursive: boolean = fa
   return results
 }
 
-export const selectAndImportFolder = async(): Promise<void> => {
+/**
+ * 导入（或重新扫描）指定音乐文件夹。
+ * 目录路径来自应用内置文件浏览器（ChoosePath 的 dirOnly 模式），不再拉起系统 SAF 目录选择器，
+ * 车机上系统选择器常常进不去外部存储或返回 content:// 后无法读取。
+ * 扫描固定递归（recursive=true），修复此前只扫一层、子目录里的音频识别不到的问题。
+ */
+export const importFolder = async(folderPath: string): Promise<void> => {
+  if (!folderPath) return
   try {
-    const result = await selectManagedFolder(true)
-    // 用户取消选择时直接返回；若返回结果缺少可用路径，给出提示，避免表现为“点了没反应”
-    if (!result) return
-    if (!result.path) {
-      toast(global.i18n.t('open_storage_select_managed_folder_failed_tip', { msg: String((result as any).uri ?? 'unknown uri') }))
-      return
-    }
-
-    const folderPath = result.path
-    const folderName = folderPath.split(/[/\\]/).pop() || folderPath
+    const folderName = folderPath.split(/[/\\]/).filter(Boolean).pop() || folderPath
 
     // Add folder to list
-    const added = localAction.addFolder({
+    localAction.addFolder({
       path: folderPath,
       name: folderName,
       addTime: Date.now(),
@@ -195,7 +221,7 @@ export const selectAndImportFolder = async(): Promise<void> => {
     localAction.setScanning(true)
 
     try {
-      const musics = await scanFolderFiles(folderPath)
+      const musics = await scanFolderFiles(folderPath, true)
 
       if (musics.length === 0) {
         toast(global.i18n.t('local_scan_empty'))
@@ -208,9 +234,8 @@ export const selectAndImportFolder = async(): Promise<void> => {
       localAction.updateScanProgress({ current: 0, total: 0, currentFile: '' })
     }
   } catch (e) {
-    console.error('Error selecting folder:', e)
+    console.error('Error scanning folder:', folderPath, e)
     localAction.setScanning(false)
-    // 原生文件选择器或扫描异常时给出可见提示，避免用户感知为“点击无反应”
     toast(global.i18n.t('open_storage_select_managed_folder_failed_tip', { msg: (e as Error)?.message ?? String(e) }))
   }
 }

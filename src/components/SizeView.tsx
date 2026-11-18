@@ -21,6 +21,10 @@ export default memo(() => {
 
   const applySize = useCallback((width: number, height: number) => {
     if (!width || !height) return
+    // 先立即用根视图实测尺寸更新布局基准：
+    // 全屏切系统虚拟 PiP 时，原生尺寸查询是异步桥调用，过渡期间会滞后，
+    // 原来只在异步回调里 setWindowSize，导致小窗里仍按全屏尺寸布局
+    windowSizeTools.setWindowSize(width, height)
     void getWindowSize().then(size => {
       sizeRef.current = [size.height, height]
       const statusbarHeight = getStatusbarHeight(size.height, height)
@@ -29,9 +33,8 @@ export default memo(() => {
         currentHeightRef.current = statusbarHeight
         setStatusbarHeight(statusbarHeight)
       }
-      windowSizeTools.setWindowSize(width, height)
     }).catch(() => {
-      windowSizeTools.setWindowSize(width, height)
+      sizeRef.current = [height, height]
     })
   }, [])
 

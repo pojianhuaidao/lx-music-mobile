@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useState, useCallback } from 'react'
+import { forwardRef, useImperativeHandle, useState, useCallback, useRef } from 'react'
 import { View, TouchableOpacity, StyleSheet, FlatList } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
 import { useI18n } from '@/lang'
@@ -8,7 +8,8 @@ import Modal from './ModalWrapper'
 import { useFolders, localAction } from '@/store/local'
 import { type FolderInfo } from '@/store/local/state'
 import { confirmDialog, toast } from '@/utils/tools'
-import { selectAndImportFolder } from '@/core/local'
+import { importFolder } from '@/core/local'
+import FileSelect, { type FileSelectType } from '@/components/common/FileSelect'
 
 export interface FolderManagerModalType {
   show: () => void
@@ -20,6 +21,7 @@ export default forwardRef<FolderManagerModalType, {}>((_, ref) => {
   const t = useI18n()
   const folders = useFolders()
   const [visible, setVisible] = useState(false)
+  const fileSelectRef = useRef<FileSelectType>(null)
 
   useImperativeHandle(ref, () => ({
     show: () => { setVisible(true) },
@@ -30,9 +32,12 @@ export default forwardRef<FolderManagerModalType, {}>((_, ref) => {
     setVisible(false)
   }, [])
 
-  const handleAddFolder = useCallback(async() => {
-    await selectAndImportFolder()
-  }, [])
+  const handleAddFolder = useCallback(() => {
+    // 与本地页主入口保持一致：目录一律由应用内置文件浏览器选择，不再走系统 SAF 选择器
+    fileSelectRef.current?.show({ title: t('local_add_folder'), dirOnly: true }, (path) => {
+      void importFolder(path)
+    })
+  }, [t])
 
   const handleRemoveFolder = useCallback(async(folder: FolderInfo) => {
     const confirmed = await confirmDialog({
@@ -72,7 +77,8 @@ export default forwardRef<FolderManagerModalType, {}>((_, ref) => {
   ), [theme, t])
 
   return (
-    <Modal visible={visible} onClose={handleClose}>
+    <>
+      <Modal visible={visible} onClose={handleClose}>
       <View style={[styles.container, { backgroundColor: theme['c-content-background'] }]}>
         <View style={styles.header}>
           <Text size={16} color={theme['c-font']}>{t('local_folder_manager')}</Text>
@@ -101,7 +107,9 @@ export default forwardRef<FolderManagerModalType, {}>((_, ref) => {
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+      </Modal>
+      <FileSelect ref={fileSelectRef} />
+    </>
   )
 })
 

@@ -12,7 +12,6 @@ const defaultSetting: LX.AppSetting = {
   'common.allowProgressBarSeek': true,
   'common.showBackBtn': false,
   'common.showExitBtn': true,
-  'common.useSystemFileSelector': false,
   'common.alwaysKeepStatusbarHeight': false,
   'common.iconTheme': 'default',
 

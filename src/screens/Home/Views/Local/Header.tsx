@@ -5,9 +5,10 @@ import { useI18n } from '@/lang'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import { useScanning, useScanProgress, localAction } from '@/store/local'
-import { selectAndImportFolder, scanAllStorage } from '@/core/local'
+import { importFolder, scanAllStorage } from '@/core/local'
 import { saveLocalListNow, saveLocalExcludedIdsNow } from '@/core/init/local'
 import { confirmDialog, toast } from '@/utils/tools'
+import FileSelect, { type FileSelectType } from '@/components/common/FileSelect'
 import SortModal, { type SortModalType } from './SortModal'
 import FolderManagerModal, { type FolderManagerModalType } from './FolderManagerModal'
 
@@ -18,13 +19,18 @@ export default memo(() => {
   const scanProgress = useScanProgress()
   const sortModalRef = useRef<SortModalType>(null)
   const folderManagerRef = useRef<FolderManagerModalType>(null)
+  const fileSelectRef = useRef<FileSelectType>(null)
 
-  const handleSelectFolder = useCallback(async() => {
+  const handleSelectFolder = useCallback(() => {
     if (isScanning) {
       toast(t('local_scanning'))
       return
     }
-    await selectAndImportFolder()
+    // 统一走应用内置文件浏览器（dirOnly 目录模式）选择音乐目录，
+    // 不再拉起系统文件选择器（SAF），车机上 SAF 常进不去外部存储
+    fileSelectRef.current?.show({ title: t('local_add_folder'), dirOnly: true }, (path) => {
+      void importFolder(path)
+    })
   }, [isScanning, t])
 
   const handleShowSort = useCallback(() => {
@@ -123,6 +129,7 @@ export default memo(() => {
 
       <SortModal ref={sortModalRef} />
       <FolderManagerModal ref={folderManagerRef} />
+      <FileSelect ref={fileSelectRef} />
     </View>
   )
 })

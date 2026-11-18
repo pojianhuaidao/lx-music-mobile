@@ -44,14 +44,17 @@ export const windowSizeTools = {
     }
   },
   /**
-   * 应用一次尺寸，尺寸未变化时不做任何广播。
+   * 应用一次尺寸。尺寸未变化时默认不广播；
+   * force 为 true 时即使尺寸完全相同也强制广播一次，用于
+   * 全屏 → 系统虚拟 PiP 这类「尺寸数值恰好相同、但窗口 Surface 已换帧」的场景，
+   * 否则订阅者（useWindowSize）收不到通知，界面会停留在旧布局。
    * @returns 是否发生了实际更新
    */
-  applySize(size: { width: number, height: number }) {
+  applySize(size: { width: number, height: number }, force = false) {
     const width = Math.round(size.width)
     const height = Math.round(size.height)
     if (!width || !height) return false
-    if (this.size.width === width && this.size.height === height) return false
+    if (!force && this.size.width === width && this.size.height === height) return false
     this.size = { width, height }
     for (const handler of [...this.listeners]) {
       try {
@@ -66,11 +69,24 @@ export const windowSizeTools = {
    * 重新读取窗口尺寸并广播。
    * 用于进出小窗 / 双小窗并存 / ROM recreate 后刷新布局基准。
    * 使用 Dimensions 同步取值：它直接反映当前 configuration，
-   * 不存在异步桥延迟，也不会因 ROM 未派发 change 事件而取到旧值。
+   * 不存在异步桥延迟，也不会因 ROM 未派发 change 事件而取到旧值；
+   * 随后再用原生窗口尺寸做一次校正，覆盖 ROM 只改 Surface 不改 configuration 的情况。
+   * @param force 是否强制广播（尺寸未变化也广播）
    */
-  async refresh() {
-    this.applySize(getWindowSizeFromDimensions())
-    return this.size
+  async refresh(force = false) {
+    const size = getWindowSizeFromDimensions()
+    let changed = this.applySize(size, force)
+    // 原生侧窗口尺寸可能已经变化而 Dimensions 尚未同步（PiP 过渡期间）
+    try {
+      const nativeSize = await getWindowSize()
+      if (nativeSize.width && nativeSize.height &&
+        (Math.round(nativeSize.width) !== this.size.width || Math.round(nativeSize.height) !== this.size.height)) {
+        changed = this.applySize(nativeSize, force) || changed
+      }
+    } catch {
+      // 原生取值失败时以 Dimensions 结果为准
+    }
+    return { size: this.size, changed }
   },
   async init() {
     const size = await getWindowSize()
