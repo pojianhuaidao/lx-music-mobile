@@ -363,6 +363,7 @@
   "setting_basic_theme_icon_theme_default": "原版",
   "setting_basic_theme_icon_theme_tabler": "Tabler",
   "setting_basic_theme_icon_theme_iconoir": "Iconoir",
+  "setting_basic_theme_skin": "外觀皮膚",
   "setting_dislike_list_input_tip": "標題@演出者\n標題\n@演出者",
   "setting_dislike_list_tips": "1. 每條一行，若歌曲或者演出者名字中存在「@」符號，需要將其取代成「#」\n2. 指定某演出者的某首歌：標題@演出者\n3. 指定某首歌：演出者\n4. 指定某演出者：@演出者",
   "setting_list": "清單設定",

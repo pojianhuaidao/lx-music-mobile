@@ -87,6 +87,8 @@ const defaultSetting: LX.AppSetting = {
   'theme.fontShadow': false,
   'theme.glassBg': false,
   'theme.glassOpacity': 0.55,
+  // 外观皮肤 id，default = 洛雪原版外观，其他值由 src/skin/registry.ts 注册
+  'theme.skinId': 'default',
 }
 
 

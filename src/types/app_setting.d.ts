@@ -117,6 +117,13 @@ declare global {
       'theme.glassOpacity': number
 
       /**
+       * 外观皮肤 id
+       *
+       * default 为洛雪原版外观；其他皮肤由 src/skin/registry.ts 注册
+       */
+      'theme.skinId': string
+
+      /**
        * 启动时自动播放歌曲
        */
       'player.startupAutoPlay': boolean

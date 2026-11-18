@@ -1,34 +1,8 @@
-import { View } from 'react-native'
-import Aside from './Aside'
-import PlayerBar from '@/components/player/PlayerBar'
-import StatusBar from '@/components/common/StatusBar'
-import Header from './Header'
-import Main from './Main'
-import { createStyle } from '@/utils/tools'
-
-const styles = createStyle({
-  container: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  content: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-})
+import { useSkin } from '@/skin'
+import Default from './Default'
 
 export default () => {
-  return (
-    <>
-      <StatusBar />
-      <View style={styles.container}>
-        <Aside />
-        <View style={styles.content}>
-          <Header />
-          <Main />
-          <PlayerBar isHome />
-        </View>
-      </View>
-    </>
-  )
+  const skin = useSkin()
+  const SkinHome = skin.HomeHorizontal
+  return SkinHome ? <SkinHome /> : <Default />
 }

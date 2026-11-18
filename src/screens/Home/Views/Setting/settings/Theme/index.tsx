@@ -8,6 +8,7 @@ import IsHideBgDark from './IsHideBgDark'
 import IsDynamicBg from './IsDynamicBg'
 import IsFontShadow from './IsFontShadow'
 import GlassBg from './GlassBg'
+import Skin from './Skin'
 // import { useI18n } from '@/lang/i18n'
 
 export default memo(() => {
@@ -15,6 +16,7 @@ export default memo(() => {
     <>
       <GlassBg />
       <Theme />
+      <Skin />
       <IconTheme />
       <IsAutoTheme />
       <IsHideBgDark />

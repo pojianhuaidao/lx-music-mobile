@@ -363,6 +363,7 @@
   "setting_basic_theme_icon_theme_default": "原版",
   "setting_basic_theme_icon_theme_tabler": "Tabler",
   "setting_basic_theme_icon_theme_iconoir": "Iconoir",
+  "setting_basic_theme_skin": "外观皮肤",
   "setting_dislike_list_input_tip": "歌曲名@艺术家\n歌曲名\n@艺术家",
   "setting_dislike_list_tips": "1. 每条一行，若歌曲或者艺术家名字中存在「@」符号，需要将其替换成「#」\n2. 指定某艺术家的某首歌：歌曲名@艺术家\n3. 指定某首歌：歌曲名\n4. 指定某艺术家：@艺术家",
   "setting_list": "列表设置",
