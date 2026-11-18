@@ -57,9 +57,9 @@ export const TEMP_FILE_PATH = temporaryDirectoryPath + '/tempFile'
 //   // return windowSize
 // }
 
-// 内置文件浏览器直接按真实路径读取外部存储，Android 11+ 必须使用「所有文件访问权限�?
-// (MANAGE_EXTERNAL_STORAGE)。旧实现�?WRITE_EXTERNAL_STORAGE：目�?SDK �?30 时该权限
-// 被系统直接忽略，check 恒为 false、request 恒为拒绝，会导致内置浏览器入口永远被权限框挡住�?
+// 内置文件浏览器直接按真实路径读取外部存储，Android 11+ 必须使用「所有文件访问权限」
+// (MANAGE_EXTERNAL_STORAGE)。旧实现用WRITE_EXTERNAL_STORAGE：目标SDK ≈30 时该权限
+// 被系统直接忽略，check 恒为 false、request 恒为拒绝，会导致内置浏览器入口永远被权限框挡住。
 export const checkStoragePermissions = async() => isExternalStorageManager()
 
 export const requestStoragePermission = async() => {
@@ -68,7 +68,7 @@ export const requestStoragePermission = async() => {
 
   try {
     const granted = await requestManageExternalStorage()
-    // 保持返回语义：true=已授�?/ false=本次拒绝 / null=不再询问（跳转设置页后仍失败也按 false 处理�?
+    // 保持返回语义：true=已授权/ false=本次拒绝 / null=不再询问（跳转设置页后仍失败也按 false 处理，
     return granted
   } catch (err: any) {
     return false
@@ -497,8 +497,8 @@ export const createStyle = <T extends StyleSheet.NamedStyles<T>>(styles: T | Sty
 }
 
 export const isHorizontalMode = (width: number, height: number): boolean => {
-  // 车机小窗/双小窗并存时窗口可能又窄又矮，仅凭宽高比会误判为横屏�?
-  // 因此额外要求宽度与高度都达到可分栏的最小值（�?windowBreakpoints�?
+  // 车机小窗/双小窗并存时窗口可能又窄又矮，仅凭宽高比会误判为横屏，
+  // 因此额外要求宽度与高度都达到可分栏的最小值（见windowBreakpoints）
   return getWindowMetrics(width, height).isHorizontalMode
 }
 
@@ -557,7 +557,7 @@ export const remoteLyricTip = async() => {
   if (isRead) return
 
   return tipDialog({
-    title: '有点温馨的提�?,
+    title: '有点温馨的提示',
     message: '若你将本功能用于汽车，请记住这个：\n道路千万条，安全第一条！\n道路千万条，安全第一条！！\n道路千万条，安全第一条！！！',
     btnText: '我知道了 (Close)',
     bgClose: true,
