@@ -1,11 +1,10 @@
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Dimensions, PixelRatio, TouchableOpacity, View } from 'react-native'
 import Image from '@/components/common/Image'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import { createStyle } from '@/utils/tools'
 import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
-import { useWindowSize } from '@/utils/hooks'
 import { useIsPlay, usePlayerMusicInfo, useProgress } from '@/store/player/hook'
 import { playNext, playPrev, togglePlay } from '@/core/player/player'
 import { NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
@@ -53,8 +52,19 @@ const getBarMetrics = (winHeight: number) => {
  */
 export default memo(({ onOpenPlayDetail }: MiniPlayerBarProps) => {
   const { palette: skinPalette, on: skinOn } = useKugouTheme()
-  const windowSize = useWindowSize()
-  const metrics = useMemo(() => getBarMetrics(windowSize.height), [windowSize.height])
+  // 窗口高度直接取 Dimensions 的实时 dp 值：windowSizeTools 在部分车机 ROM 上
+  // 报告的是像素值或旋转前的陈旧值，按 15% 折算会把播放条顶回原基准高度
+  const [winHeight, setWinHeight] = useState(() => Dimensions.get('window').height)
+  useEffect(() => {
+    const handleChange = () => {
+      setWinHeight(Dimensions.get('window').height)
+    }
+    const subscription = Dimensions.addEventListener('change', handleChange)
+    return () => {
+      subscription.remove()
+    }
+  }, [])
+  const metrics = useMemo(() => getBarMetrics(winHeight), [winHeight])
   const styles = useMemo(() => createStyles(skinPalette, skinOn, metrics), [skinPalette, skinOn, metrics])
   const fontSize = useMemo(() => ({
     name: Math.max(10, Math.round(13 * metrics.ratio)),
