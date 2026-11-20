@@ -75,6 +75,9 @@ export default memo(({ activeId, compact = false, onOpen }: BrandBarProps) => {
       <TouchableOpacity activeOpacity={0.7} onPress={() => { onOpen('nav_search') }} style={styles.searchBtn}>
         <Icon name="search" size={compact ? 18 : 16} color={skinPalette.textPrimary} />
       </TouchableOpacity>
+      <TouchableOpacity activeOpacity={0.7} onPress={() => { onOpen('nav_setting') }} style={styles.settingBtn}>
+        <Icon name="setting" size={compact ? 18 : 16} color={skinPalette.textPrimary} />
+      </TouchableOpacity>
     </View>
   )
 })
@@ -135,5 +138,14 @@ const createStyles = (skinPalette: NeteasePalette, skinOn: NeteaseOnColor, compa
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: skinPalette.card,
+  },
+  settingBtn: {
+    width: scaleSizeW(compact ? 34 : 30),
+    height: scaleSizeW(compact ? 34 : 30),
+    borderRadius: scaleSizeW(17),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: skinPalette.brand,
+    marginLeft: scaleSizeW(8),
   },
 })
