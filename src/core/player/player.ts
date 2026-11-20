@@ -1,4 +1,4 @@
-import { isInitialized, initial as playerInitial, isEmpty, setPause, setPlay, setResource, setStop } from '@/plugins/player'
+import { isInitialized, initial as playerInitial, isEmpty, setPause, setPlay, setResource, setStop, ffmpegResume } from '@/plugins/player'
 import {
   setStatusText,
 } from '@/core/player/playStatus'
@@ -21,6 +21,8 @@ import {
 } from '@/core/player/tempPlayList'
 import { getMusicUrl, getPicPath, getLyricInfo } from '@/core/music'
 import { getOtherSource, getOnlineOtherSourceMusicUrl } from '@/core/music/utils'
+import { isLocalOnlyPlayback } from '@/core/localCodec'
+import { isFFmpegCoreActive } from '@/core/localFFmpeg'
 import { requestMsg } from '@/utils/message'
 import { getRandom } from '@/utils/common'
 import { filterList } from './utils'
@@ -113,6 +115,22 @@ const getMusicPlayUrl = async(musicInfo: LX.Music.MusicInfo | LX.Download.ListIt
   // const type = getPlayType(settingState.setting['player.isPlayHighQuality'], musicInfo)
   let toggleMusicInfo = ('progress' in musicInfo ? musicInfo.metadata.musicInfo : musicInfo).meta.toggleMusicInfo
 
+  // 仅本地播放模式下的本地歌曲：不做换源尝试，只解析本地文件并交给播放内核解码
+  if (('progress' in musicInfo ? musicInfo.metadata.musicInfo : musicInfo).source == 'local' && isLocalOnlyPlayback()) {
+    return getMusicUrl({
+      musicInfo,
+      isRefresh,
+      allowToggleSource: false,
+    }).then(url => {
+      if (global.lx.isPlayedStop || diffCurrentMusicInfo(musicInfo)) return null
+      return url
+    }).catch((err: Error) => {
+      if (global.lx.isPlayedStop || diffCurrentMusicInfo(musicInfo)) return null
+      // 本地文件缺失、容器不被内核支持等都是确定性错误，重试并不会改变结果
+      throw err
+    })
+  }
+
   return (toggleMusicInfo ? getMusicUrl({
     musicInfo: toggleMusicInfo,
     isRefresh,
@@ -185,6 +203,12 @@ export const handleAutoSwitchSource = async() => {
   if (!settingState.setting['player.autoSwitchSource']) return
   // 已成功获取 URL（含缓存命中）即视为连上过，等待现有重试/超时链路
   if (currentMusicUrlGot) return
+
+  // 仅本地播放模式下的本地歌曲：只认本地文件，不自动切换到在线音源
+  if (('progress' in musicInfo ? musicInfo.metadata.musicInfo : musicInfo).source == 'local' && isLocalOnlyPlayback()) {
+    setStatusText(global.i18n.t('local_play_auto_switch_disabled'))
+    return
+  }
 
   if (autoSwitchNum >= 2) {
     autoSwitchNum = 0
@@ -689,6 +713,14 @@ export const playPrev = async(isAutoToggle = false): Promise<void> => {
  */
 export const play = () => {
   if (playerState.playMusicInfo.musicInfo == null) return
+  if (isFFmpegCoreActive()) {
+    // FFmpeg 内核不进入 TrackPlayer 队列，isEmpty() 恒为 true，
+    // 此处必须直接续播，否则会被误判为「无资源」而重新解析整首
+    void ffmpegResume().catch((err) => {
+      console.log('[player] ffmpeg resume failed', err)
+    })
+    return
+  }
   if (isEmpty()) {
     if (createGettingUrlId(playerState.playMusicInfo.musicInfo) != global.lx.gettingUrlId) setMusicUrl(playerState.playMusicInfo.musicInfo)
     return

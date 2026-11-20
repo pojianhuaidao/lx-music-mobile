@@ -83,3 +83,11 @@ push_out.txt
 
 # local build output (not to commit)
 output/
+
+# FFmpeg 音频桥接模块（方案A）
+# FFmpeg 源码、下载包与裁剪静态库体积大且可由脚本重新生成，不入库
+android/app/src/main/cpp/ffmpeg/
+android/app/src/main/cpp/.cxx/
+# 本地预编 so（使用 -PffmpegUsePrebuiltSo=true 时直接打入 APK）
+android/app/src/main/jniLibs/**/libffmpeg_bridge.so
+

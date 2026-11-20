@@ -140,5 +140,21 @@ export const setLyric = async() => {
     await handleSetLyric(playerState.musicInfo.lrc, tlrc, rlrc)
   }
 
-  if (playerState.isPlay) play()
+  // 换歌后必须按当前播放进度重建歌词时间轴。
+  // 原实现只在 isPlay 为 true 时调用 play()：自动切歌（playerEnded -> playNext）时
+  // isPlay 会因切源过程短暂为 false，于是歌词行号停在 -1，高亮与滚动都不再更新，
+  // 直到用户手动操作才恢复。这里改为始终对齐：播放态继续走时钟，暂停态对齐行号后立刻停表。
+  void getPosition().then((position) => {
+    if (!Number.isFinite(position)) return
+    const time = position * 1000
+    if (playerState.isPlay) {
+      handlePlay(time)
+    } else {
+      // 先同步对齐桌面歌词与行号，再立即停表，避免暂停态换歌后高亮停在 -1
+      handlePlay(time)
+      pause()
+    }
+  }).catch((err: unknown) => {
+    console.warn('[lyric] realign after setLyric failed', err)
+  })
 }

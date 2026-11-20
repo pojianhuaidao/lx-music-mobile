@@ -1,0 +1,82 @@
+name: Build FFmpeg
+description: 下载并编译 audio-only 裁剪版 FFmpeg 静态库（方案A），带缓存
+
+inputs:
+  abis:
+    description: 目标 ABI，逗号分隔，如 arm64-v8a 或 armeabi-v7a,arm64-v8a,x86,x86_64
+    required: false
+    default: 'arm64-v8a'
+  enabled:
+    description: 是否编译（'false' 表示使用仓库内/预编 libffmpeg_bridge.so，跳过编译）
+    required: false
+    default: 'true'
+
+outputs:
+  cache-hit:
+    description: 是否命中 FFmpeg 静态库缓存
+    value: ${{ steps.cache-ffmpeg.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve FFmpeg version
+      id: ffmpeg-version
+      if: inputs.enabled == 'true'
+      shell: bash
+      run: |
+        script="android/app/src/main/cpp/scripts/build_ffmpeg_android.sh"
+        version=""
+        ndk=""
+        if [ -f "$script" ]; then
+          version="$(sed -n "s/^FFMPEG_VERSION=\"\{0,1\}\([^\"[:space:]]*\)\"\{0,1\}[[:space:]]*$/\1/p" "$script" | head -n 1)"
+          ndk="$(sed -n "s/^NDK_VERSION=\"\{0,1\}\([^\"[:space:]]*\)\"\{0,1\}[[:space:]]*$/\1/p" "$script" | head -n 1)"
+        fi
+        if [ -z "$version" ]; then
+          version="6.0.1"
+          echo "::warning::未能从 $script 解析 FFMPEG_VERSION，回退为 $version"
+        fi
+        if [ -z "$ndk" ]; then
+          ndk="26.1.10909125"
+          echo "::warning::未能从 $script 解析 NDK_VERSION，回退为 $ndk"
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "ndk=$ndk" >> "$GITHUB_OUTPUT"
+        echo "FFmpeg 版本: $version, NDK: $ndk"
+
+    - name: Cache FFmpeg static libs
+      id: cache-ffmpeg
+      if: inputs.enabled == 'true'
+      uses: actions/cache@v4
+      with:
+        path: android/app/src/main/cpp/ffmpeg/android-libs
+        # cache key 不允许逗号，把 ABI 列表里的逗号换成下划线
+        key: ffmpeg-${{ steps.ffmpeg-version.outputs.version }}-${{ replace(inputs.abis, ',', '_') }}-ndk${{ steps.ffmpeg-version.outputs.ndk }}-${{ hashFiles('android/app/src/main/cpp/scripts/build_ffmpeg_android.sh') }}
+
+    - name: Build FFmpeg static libs
+      if: inputs.enabled == 'true' && steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        FFMPEG_ABIS: ${{ inputs.abis }}
+      run: |
+        bash android/app/src/main/cpp/scripts/build_ffmpeg_android.sh
+
+    - name: Verify FFmpeg static libs
+      if: inputs.enabled == 'true'
+      shell: bash
+      env:
+        FFMPEG_ABIS: ${{ inputs.abis }}
+      run: |
+        set -e
+        fail=0
+        for abi in ${FFMPEG_ABIS//,/ }; do
+          for lib in avformat avcodec swresample avutil; do
+            file="android/app/src/main/cpp/ffmpeg/android-libs/$abi/lib/lib$lib.a"
+            if [ -f "$file" ]; then
+              echo "OK  $file ($(du -h "$file" | cut -f1))"
+            else
+              echo "::error::缺少 $file"
+              fail=1
+            fi
+          done
+        done
+        exit $fail

@@ -15,6 +15,8 @@ import {
 import { getLocalFilePath } from '@/utils/music'
 import { readLyric, readPic } from '@/utils/localMediaMetadata'
 import { stat } from '@/utils/fs'
+import settingState from '@/store/setting/state'
+import { getLocalDecodeBackend, getLocalFileExt, isLocalOnlyPlayback, toFFmpegPlayUri, toLocalPlayUri } from '@/core/localCodec'
 
 const getOtherSourceByLocal = async<T>(musicInfo: LX.Music.MusicInfoLocal, handler: (infos: LX.Music.MusicInfoOnline[]) => Promise<T>) => {
   let result: LX.Music.MusicInfoOnline[] = []
@@ -72,10 +74,28 @@ export const getMusicUrl = async({ musicInfo, isRefresh, allowToggleSource = tru
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
   allowToggleSource?: boolean
 }): Promise<string> => {
-  if (!isRefresh) {
+  const isLocalOnly = isLocalOnlyPlayback()
+  // 本地文件是本地歌曲的唯一播放来源：直接交给播放内核（Media3 ExoPlayer）解码，
+  // 不做在线源解析，避免本地文件被静默替换成网络流
+  if (isLocalOnly || !isRefresh) {
     const path = await getLocalFilePath(musicInfo)
-    // console.log(path)
-    if (path) return path
+    if (path) {
+      // 内核三态判定：系统内核可解直连；需 FFmpeg 内核时返回专用伪 URI 交由播放层切换；
+      // 不可解（系统内核无 Extractor 且 FFmpeg 不可用）才明确报错
+      switch (getLocalDecodeBackend(path)) {
+        case 'system':
+          return toLocalPlayUri(path)
+        case 'ffmpeg':
+          return toFFmpegPlayUri(path)
+        case 'unsupported':
+        default:
+          // 仅本地模式：明确报错，不静默换在线源
+          if (isLocalOnly) throw new Error(global.i18n.t('local_play_unsupported_ext', { ext: getLocalFileExt(path) || '-' }))
+          break
+      }
+    } else if (isLocalOnly) {
+      throw new Error(global.i18n.t('local_play_file_missing'))
+    }
   }
 
   try {
@@ -115,6 +135,9 @@ export const getPicUrl = async({ musicInfo, listId, isRefresh, skipFilePic, onTo
 
     if (musicInfo.meta.picUrl) return musicInfo.meta.picUrl
   }
+
+  // 关闭在线封面后不再发起网络请求，只保留文件内嵌封面与列表已缓存封面
+  if (!settingState.setting['local.allowOnlinePic']) return musicInfo.meta.picUrl ?? ''
 
   try {
     return await getOnlineOtherSourcePicByLocal(musicInfo).then(({ url }) => {
@@ -161,6 +184,11 @@ export const getLyricInfo = async({ musicInfo, isRefresh, skipFileLyric, onToggl
 
     const lyricInfo = await getCachedLyricInfo(musicInfo)
     if (lyricInfo?.lyric) return buildLyricInfo(lyricInfo)
+  }
+
+  // 关闭在线歌词后不再发起网络请求，直接返回空歌词（播放页显示无歌词）
+  if (!settingState.setting['local.allowOnlineLyric']) {
+    return buildLyricInfo({ lyric: '', tlyric: '', rlyric: '', lxlyric: '' })
   }
 
   try {

@@ -68,3 +68,15 @@ export {
   isEmpty,
   useBufferProgress,
 } from './utils'
+
+// FFmpeg 本地解码内核：供播放层判断内核归属并驱动对应控制
+export {
+  ffmpegGetPosition,
+  ffmpegGetDuration,
+  ffmpegPauseCore,
+  ffmpegRenderResource,
+  ffmpegResume,
+  ffmpegSeekTo,
+  ffmpegStopCore,
+  ffmpegTeardown,
+} from './ffmpegCore'

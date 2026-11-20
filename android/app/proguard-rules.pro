@@ -26,3 +26,13 @@
   **[] $VALUES;
   public *;
 }
+
+
+# FFmpeg 音频桥接模块（方案A）
+# NativeModule 与 ReactPackage 由 MainApplication 反射/直接实例化，需保留类名与方法名
+-keep class cn.toside.music.mobile.ffmpeg.** { *; }
+# JNI 声明类的方法需与 cpp 侧导出的符号名保持一致
+-keepclasseswithmembernames class cn.toside.music.mobile.ffmpeg.** {
+    native <methods>;
+}
+

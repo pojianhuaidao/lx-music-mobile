@@ -1,6 +1,9 @@
 import type { SkinDefinition } from './types'
-import defaultSkin, { defaultSkinPalette } from './default'
+import defaultSkin, { defaultSkinPalettes, defaultSkinPalette } from './default'
 import kuwoSkin from './kuwo'
+import qqSkin from './qq'
+import kugouSkin from './kugou'
+import neteaseSkin from './netease'
 
 /** 缺省皮肤 id，与 defaultSetting['theme.skinId'] 保持一致 */
 export const DEFAULT_SKIN_ID = 'default'
@@ -16,6 +19,9 @@ export const DEFAULT_SKIN_ID = 'default'
 export const skins: SkinDefinition[] = [
   defaultSkin,
   kuwoSkin,
+  qqSkin,
+  kugouSkin,
+  neteaseSkin,
 ]
 
 /** 按 id 查找皮肤，未命中时回落到 default 皮肤 */
@@ -27,4 +33,4 @@ export const getSkin = (id?: string | null): SkinDefinition => {
   return defaultSkin
 }
 
-export { defaultSkinPalette }
+export { defaultSkinPalettes, defaultSkinPalette }

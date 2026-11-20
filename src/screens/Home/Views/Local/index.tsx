@@ -2,7 +2,8 @@ import { useCallback, useRef } from 'react'
 import { View, TouchableOpacity, StyleSheet } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
 import { useI18n } from '@/lang'
-import { useLocalList, useLocalStats, useScanning } from '@/store/local'
+import { useScanning } from '@/store/local'
+import { useFilteredLocalList, useLocalFilterStats } from '@/store/local/hook'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import List, { type ListType } from './List'
@@ -17,8 +18,8 @@ import { localAction } from '@/store/local'
 export default () => {
   const theme = useTheme()
   const t = useI18n()
-  const list = useLocalList()
-  const stats = useLocalStats()
+  const list = useFilteredLocalList()
+  const filterStats = useLocalFilterStats()
   const isScanning = useScanning()
 
   const listRef = useRef<ListType>(null)
@@ -74,9 +75,11 @@ export default () => {
       <Header />
       <View style={[styles.statsBar, { backgroundColor: theme['c-primary-background'] }]}>
         <Text size={12} color={theme['c-font-label']}>
-          {t('local_total_count', { count: stats.total })}
+          {filterStats.active
+            ? t('local_filter_matched', { matched: filterStats.matched, total: filterStats.total })
+            : t('local_total_count', { count: filterStats.total })}
           {'  '}
-          {t('local_total_size', { size: formatSize(stats.totalSize) })}
+          {t('local_total_size', { size: formatSize(filterStats.active ? filterStats.matchedSize : filterStats.totalSize) })}
         </Text>
         {isScanning && (
           <View style={styles.scanningIndicator}>

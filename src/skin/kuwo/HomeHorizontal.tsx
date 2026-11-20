@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from 'react'
+import { useMemo, memo, useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
 import StatusBar from '@/components/common/StatusBar'
 import Main from '@/screens/Home/Horizontal/Main'
@@ -8,7 +8,8 @@ import { setNavActiveId } from '@/core/common'
 import { navigations } from '@/navigation'
 import { createStyle } from '@/utils/tools'
 import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
-import { kuwoPalette } from './palette'
+import { useKuwoTheme } from './theme'
+import type { KuwoOnColor, SkinPalette } from './palette'
 import TopBar, { type KuwoNavId } from './parts/TopBar'
 import NavRail from './parts/NavRail'
 import NowPlayingCard from './parts/NowPlayingCard'
@@ -22,6 +23,8 @@ import ContentGrid from './parts/ContentGrid'
  * 以保证皮肤只改骨架、不重写业务页面。
  */
 export default memo(() => {
+  const { palette: skinPalette, on: skinOn } = useKuwoTheme()
+  const styles = useMemo(() => createStyles(skinPalette, skinOn), [skinPalette, skinOn])
   const navActiveId = useNavActiveId()
   const statusBarHeight = useStatusbarHeight()
   // true = 处于酷我推荐首页；false = 已进入某个导航分组页
@@ -92,10 +95,10 @@ export default memo(() => {
   )
 })
 
-const styles = createStyle({
+const createStyles = (skinPalette: SkinPalette, skinOn: KuwoOnColor) => createStyle({
   container: {
     flex: 1,
-    backgroundColor: kuwoPalette.background,
+    backgroundColor: skinPalette.background,
     paddingHorizontal: scaleSizeW(8),
     paddingBottom: scaleSizeH(8),
   },
@@ -118,8 +121,8 @@ const styles = createStyle({
   pageCol: {
     flex: 66,
     paddingRight: scaleSizeW(6),
-    backgroundColor: kuwoPalette.card,
-    borderRadius: kuwoPalette.radius,
+    backgroundColor: skinPalette.card,
+    borderRadius: skinPalette.radius,
     overflow: 'hidden',
   },
   rightCol: {

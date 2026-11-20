@@ -1,10 +1,11 @@
-import { memo } from 'react'
+import { useMemo, memo } from 'react'
 import { TouchableOpacity, View } from 'react-native'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
 import { createStyle } from '@/utils/tools'
-import { kuwoPalette } from '../palette'
+import { useKuwoTheme } from '../theme'
+import type { KuwoOnColor, SkinPalette } from '../palette'
 import type { KuwoNavId } from './TopBar'
 
 interface ModuleItem {
@@ -34,6 +35,8 @@ interface ContentGridProps {
 }
 
 const ModuleCard = memo(({ item, onOpen }: { item: ModuleItem, onOpen: (id: KuwoNavId) => void }) => {
+  const { palette: skinPalette, on: skinOn } = useKuwoTheme()
+  const styles = useMemo(() => createStyles(skinPalette, skinOn), [skinPalette, skinOn])
   return (
     <TouchableOpacity
       activeOpacity={0.8}
@@ -41,17 +44,17 @@ const ModuleCard = memo(({ item, onOpen }: { item: ModuleItem, onOpen: (id: Kuwo
       onPress={() => { onOpen(item.id) }}
     >
       <View style={styles.cardHeader}>
-        <Text size={item.big ? 15 : 13} color={kuwoPalette.textPrimary} style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Icon name="nextMusic" size={11} color={kuwoPalette.textSecondary} />
+        <Text size={item.big ? 15 : 13} color={skinPalette.textPrimary} style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+        <Icon name="nextMusic" size={11} color={skinPalette.textSecondary} />
       </View>
-      <Text size={10} color={kuwoPalette.textSecondary} numberOfLines={1}>{item.desc}</Text>
+      <Text size={10} color={skinPalette.textSecondary} numberOfLines={1}>{item.desc}</Text>
       {
         item.big
           ? (
               <View style={styles.placeholderRow}>
                 <View style={styles.placeholderCover} />
-                <View style={{ ...styles.placeholderCover, backgroundColor: kuwoPalette.brand }} />
-                <View style={{ ...styles.placeholderCover, backgroundColor: kuwoPalette.brandAlt }} />
+                <View style={{ ...styles.placeholderCover, backgroundColor: skinPalette.brand }} />
+                <View style={{ ...styles.placeholderCover, backgroundColor: skinPalette.brandAlt }} />
                 <View style={styles.placeholderCover} />
               </View>
             )
@@ -63,10 +66,12 @@ const ModuleCard = memo(({ item, onOpen }: { item: ModuleItem, onOpen: (id: Kuwo
 
 /** 酷我车机版内容区（中部推荐 / 精选）*/
 export default memo(({ variant, onOpen }: ContentGridProps) => {
+  const { palette: skinPalette, on: skinOn } = useKuwoTheme()
+  const styles = useMemo(() => createStyles(skinPalette, skinOn), [skinPalette, skinOn])
   const modules = variant == 'recommend' ? RECOMMEND_MODULES : FEATURED_MODULES
   return (
     <View style={styles.container}>
-      <Text size={12} color={kuwoPalette.textSecondary} style={styles.sectionTitle}>
+      <Text size={12} color={skinPalette.textSecondary} style={styles.sectionTitle}>
         {variant == 'recommend' ? '推荐' : '精选'}
       </Text>
       {
@@ -78,7 +83,7 @@ export default memo(({ variant, onOpen }: ContentGridProps) => {
   )
 })
 
-const styles = createStyle({
+const createStyles = (skinPalette: SkinPalette, skinOn: KuwoOnColor) => createStyle({
   container: {
     flex: 1,
   },
@@ -87,8 +92,8 @@ const styles = createStyle({
     marginLeft: scaleSizeW(2),
   },
   card: {
-    backgroundColor: kuwoPalette.card,
-    borderRadius: kuwoPalette.radius,
+    backgroundColor: skinPalette.card,
+    borderRadius: skinPalette.radius,
     paddingHorizontal: scaleSizeW(10),
     paddingVertical: scaleSizeH(9),
     marginBottom: scaleSizeH(8),
@@ -112,8 +117,8 @@ const styles = createStyle({
   placeholderCover: {
     flex: 1,
     aspectRatio: 1,
-    borderRadius: kuwoPalette.radius * 0.5,
-    backgroundColor: kuwoPalette.background,
+    borderRadius: skinPalette.radius * 0.5,
+    backgroundColor: skinPalette.background,
     marginRight: scaleSizeW(6),
   },
 })

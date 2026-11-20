@@ -1,8 +1,21 @@
 import TrackPlayer, { Capability, Event, RepeatMode, State } from 'react-native-track-player'
 import BackgroundTimer from 'react-native-background-timer'
 import { playMusic as handlePlayMusic } from './playList'
+import {
+  ffmpegGetDuration,
+  ffmpegGetPosition,
+  ffmpegPauseCore,
+  ffmpegRenderResource,
+  ffmpegResume,
+  ffmpegSeekTo,
+  ffmpegSetVolumeCore,
+  ffmpegStopCore,
+  ffmpegTeardown,
+} from './ffmpegCore'
 import { existsFile, moveFile, privateStorageDirectoryPath, temporaryDirectoryPath } from '@/utils/fs'
 import { toast } from '@/utils/tools'
+import { isFFmpegCoreActive } from '@/core/localFFmpeg'
+import { isFFmpegPlayUri, parseFFmpegPlayUri } from '@/core/localCodec'
 // import { PlayerMusicInfo } from '@/store/modules/player/playInfo'
 
 
@@ -151,22 +164,51 @@ const playMusic = ((fn: (musicInfo: LX.Player.PlayMusic, url: string, time: numb
 })
 
 export const setResource = (musicInfo: LX.Player.PlayMusic, url: string, duration?: number) => {
+  if (isFFmpegPlayUri(url)) {
+    // FFmpeg 内核接手：不进入 TrackPlayer 队列，由衔接层直接驱动原生解码器
+    void ffmpegRenderResource(parseFFmpegPlayUri(url), duration ?? 0)
+    return
+  }
+  if (isFFmpegCoreActive()) {
+    // 新资源要系统内核播放，先停掉 FFmpeg 内核，避免两个内核同时出声
+    void ffmpegTeardown()
+  }
   playMusic(musicInfo, url, duration ?? 0)
 }
 
-export const setPlay = async() => TrackPlayer.play()
-export const getPosition = async() => TrackPlayer.getPosition()
-export const getDuration = async() => TrackPlayer.getDuration()
+export const setPlay = async() => {
+  if (isFFmpegCoreActive()) return ffmpegResume()
+  return TrackPlayer.play()
+}
+export const getPosition = async() => {
+  if (isFFmpegCoreActive()) return ffmpegGetPosition()
+  return TrackPlayer.getPosition()
+}
+export const getDuration = async() => {
+  if (isFFmpegCoreActive()) return ffmpegGetDuration()
+  return TrackPlayer.getDuration()
+}
 export const setStop = async() => {
+  if (isFFmpegCoreActive()) return ffmpegStopCore()
   await TrackPlayer.stop()
   if (!isEmpty()) await TrackPlayer.skipToNext()
 }
 export const setLoop = async(loop: boolean) => TrackPlayer.setRepeatMode(loop ? RepeatMode.Off : RepeatMode.Track)
 
-export const setPause = async() => TrackPlayer.pause()
+export const setPause = async() => {
+  if (isFFmpegCoreActive()) return ffmpegPauseCore()
+  return TrackPlayer.pause()
+}
 // export const skipToNext = () => TrackPlayer.skipToNext()
-export const setCurrentTime = async(time: number) => TrackPlayer.seekTo(time)
-export const setVolume = async(num: number) => TrackPlayer.setVolume(num)
+export const setCurrentTime = async(time: number) => {
+  if (isFFmpegCoreActive()) return ffmpegSeekTo(time)
+  return TrackPlayer.seekTo(time)
+}
+export const setVolume = async(num: number) => {
+  // 无论当前内核都记录音量，保证 FFmpeg 内核接手时沿用用户设定
+  await ffmpegSetVolumeCore(num)
+  return TrackPlayer.setVolume(num)
+}
 export const setPlaybackRate = async(num: number) => TrackPlayer.setRate(num)
 export const updateNowPlayingTitles = async(duration: number, title: string, artist: string, album: string) => {
   console.log('set playing titles', duration, title, artist, album)

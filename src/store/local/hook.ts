@@ -2,8 +2,9 @@
  * 本地音乐模块 React Hooks
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import localState, { type LocalMusicInfo, type FolderInfo } from './state'
+import { filterLocalMusics, getLocalFilterOptions, hasActiveFilter, type LocalFilterOptions } from '@/utils/localFilter'
 
 /**
  * 使用本地音乐列表
@@ -131,4 +132,53 @@ export const useSortSetting = () => {
   }, [])
 
   return { sortType, sortOrder }
+}
+
+/**
+ * 使用本地音乐过滤选项（订阅 configUpdated 实时刷新）
+ */
+export const useLocalFilterOptions = (): LocalFilterOptions => {
+  const [options, setOptions] = useState(getLocalFilterOptions)
+
+  useEffect(() => {
+    const handler = () => {
+      setOptions(getLocalFilterOptions())
+    }
+
+    global.state_event.on('configUpdated', handler)
+    return () => {
+      global.state_event.off('configUpdated', handler)
+    }
+  }, [])
+
+  return options
+}
+
+/**
+ * 使用过滤后的本地音乐列表（列表展示与播放队列同源）
+ */
+export const useFilteredLocalList = (): LocalMusicInfo[] => {
+  const list = useLocalList()
+  const options = useLocalFilterOptions()
+
+  return useMemo(() => filterLocalMusics(list, options), [list, options])
+}
+
+/**
+ * 使用过滤命中统计
+ */
+export const useLocalFilterStats = () => {
+  const list = useLocalList()
+  const options = useLocalFilterOptions()
+
+  return useMemo(() => {
+    const filtered = filterLocalMusics(list, options)
+    return {
+      total: list.length,
+      matched: filtered.length,
+      totalSize: list.reduce((acc, item) => acc + item.size, 0),
+      matchedSize: filtered.reduce((acc, item) => acc + item.size, 0),
+      active: hasActiveFilter(options),
+    }
+  }, [list, options])
 }

@@ -12,6 +12,7 @@ import { useWindowSize } from '@/utils/hooks'
 import { COMPACT_WIDTH } from '@/utils/windowBreakpoints'
 import playerState from '@/store/player/state'
 import { play } from '@/core/player/player'
+import { resync } from '@/core/lyric'
 import { scrollTo } from '@/utils/scroll'
 import PlayLine, { type PlayLineType } from '../components/PlayLine'
 // import { screenkeepAwake } from '@/utils/nativeModules/utils'
@@ -19,6 +20,23 @@ import PlayLine, { type PlayLineType } from '../components/PlayLine'
 // import { toast } from '@/utils/tools'
 
 type FlatListType = FlatListProps<Line>
+
+/**
+ * 歌词配色覆盖
+ *
+ * 皮肤可以提供自己的歌词配色（如酷我车机版的品牌黄/深蓝）。
+ * 未提供时一律走原版 theme 取色，保证 default 皮肤渲染结果与改造前逐像素等价。
+ */
+export interface LyricColorOverride {
+  /** 当前播放行主色 */
+  active: string
+  /** 当前播放行译文色 */
+  activeSub?: string
+  /** 非当前行主色 */
+  inactive: string
+  /** 非当前行译文色 */
+  inactiveSub?: string
+}
 
 // const useLock = () => {
 //   const showCommentRef = useRef(false)
@@ -65,8 +83,9 @@ interface LineProps {
   activeLine: number
   onLayout: (lineNum: number, height: number, width: number) => void
   onPress: (lineNum: number) => void
+  lineColors?: LyricColorOverride
 }
-const LrcLine = memo(({ line, lineNum, activeLine, onLayout, onPress }: LineProps) => {
+const LrcLine = memo(({ line, lineNum, activeLine, onLayout, onPress, lineColors }: LineProps) => {
   const theme = useTheme()
   const lrcFontSize = useSettingValue('playDetail.vertical.style.lrcFontSize')
   const textAlign = useSettingValue('playDetail.style.align')
@@ -75,6 +94,18 @@ const LrcLine = memo(({ line, lineNum, activeLine, onLayout, onPress }: LineProp
 
   const colors = useMemo(() => {
     const active = activeLine == lineNum
+    // 皮肤需要自己的歌词配色时可以覆盖；未传时保持原版取色，渲染结果与改造前完全一致
+    if (lineColors) {
+      return active ? [
+        lineColors.active,
+        lineColors.activeSub ?? lineColors.active,
+        1,
+      ] as const : [
+        lineColors.inactive,
+        lineColors.inactiveSub ?? lineColors.inactive,
+        0.6,
+      ] as const
+    }
     return active ? [
       theme['c-primary'],
       theme['c-primary-alpha-200'],
@@ -84,7 +115,7 @@ const LrcLine = memo(({ line, lineNum, activeLine, onLayout, onPress }: LineProp
       theme['c-300'],
       0.6,
     ] as const
-  }, [activeLine, lineNum, theme])
+  }, [activeLine, lineNum, theme, lineColors])
 
   const handleLayout = ({ nativeEvent }: LayoutChangeEvent) => {
     onLayout(lineNum, nativeEvent.layout.height, nativeEvent.layout.width)
@@ -115,6 +146,7 @@ const LrcLine = memo(({ line, lineNum, activeLine, onLayout, onPress }: LineProp
     </TouchableOpacity>
   )
 }, (prevProps, nextProps) => {
+  if (prevProps.lineColors !== nextProps.lineColors) return false
   return prevProps.line === nextProps.line &&
     prevProps.activeLine != nextProps.lineNum &&
     nextProps.activeLine != nextProps.lineNum
@@ -132,7 +164,8 @@ const LYRIC_ACTIVE_LINE_POSITION = 0.42
 // 每行的定时器都会被下一行清掉重建，滚动被无限推迟，表现为「高亮在走、画面停在旧行」
 const LYRIC_SCROLL_DELAY = 120
 
-export default () => {
+export default (props?: { lineColors?: LyricColorOverride }) => {
+  const lineColors = props?.lineColors
   const lyricLines = useLrcSet()
   const { line } = useLrcPlay()
   const lyricLinesRef = useRef(lyricLines)
@@ -146,6 +179,8 @@ export default () => {
   const isDraggingRef = useRef(false)
   const lastWatchdogRefreshRef = useRef(0)
   const lineRef = useRef({ line: 0, prevLine: 0 })
+  // 行号漂移自愈的节流时间戳
+  const lastResyncAtRef = useRef(0)
   const isFirstSetLrc = useRef(true)
   const scrollInfoRef = useRef<NativeSyntheticEvent<NativeScrollEvent>['nativeEvent'] | null>(null)
   // FlatList 实测可视高度。窗口形态切换（全屏 ↔ 系统虚拟 PiP / 分屏）后 onScroll 不一定立刻触发，
@@ -340,37 +375,85 @@ export default () => {
   useEffect(() => {
     // linesRef.current = lyricLines
     listLayoutInfoRef.current.lineHeights = []
-    lineRef.current.prevLine = 0
-    lineRef.current.line = 0
+    // 换歌词（切歌、歌词晚到、切换翻译/罗马音）时不能把内部行号无条件归零：
+    // 归零后若播放行号没有变化（播放 hook 只在行号变化时才推送），下面的 [line]
+    // effect 不会再次触发，列表就永久停在首行 —— 这正是「自动切歌后歌词不跟随」的观感来源。
+    // 因此这里保留当前播放行（行号未知时才回到 0），并按新歌词行数裁剪，避免越界。
+    const currentLine = line >= 0 ? Math.min(line, lyricLines.length - 1) : 0
+    lineRef.current.prevLine = currentLine
+    lineRef.current.line = currentLine
     // 换歌词后旧的滚动定时器与看门狗必须失效，否则会对新列表按旧位置滚动
     clearPauseScrollWatchdog()
     if (scrollTimoutRef.current) {
       clearTimeout(scrollTimoutRef.current)
       scrollTimoutRef.current = null
     }
+    if (delayScrollTimeout.current) {
+      clearTimeout(delayScrollTimeout.current)
+      delayScrollTimeout.current = null
+    }
     if (!flatListRef.current) return
-    flatListRef.current.scrollToOffset({
-      offset: 0,
-      animated: false,
-    })
-    if (!lyricLines.length) return
+    if (!lyricLines.length) {
+      flatListRef.current.scrollToOffset({
+        offset: 0,
+        animated: false,
+      })
+      isPauseScrollRef.current = false
+      return
+    }
     playLineRef.current?.updateLyricLines(lyricLines)
     requestAnimationFrame(() => {
-      if (isFirstSetLrc.current) {
-        isFirstSetLrc.current = false
-        setTimeout(() => {
-          isPauseScrollRef.current = false
-          handleScrollToActive()
-        }, 100)
-      } else {
-        if (delayScrollTimeout.current) clearTimeout(delayScrollTimeout.current)
-        delayScrollTimeout.current = setTimeout(() => {
-          handleScrollToActive(0)
-        }, 100)
-      }
+      isFirstSetLrc.current = false
+      isPauseScrollRef.current = false
+      if (delayScrollTimeout.current) clearTimeout(delayScrollTimeout.current)
+      delayScrollTimeout.current = setTimeout(() => {
+        delayScrollTimeout.current = null
+        handleScrollToActive(currentLine)
+      }, 100)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lyricLines])
+
+  // 行号漂移自愈：播放器进度与歌词时钟可能因切歌、seek、变速、歌词晚到而失步，
+  // 表现为高亮停在旧行、滚动不再跟随。低频（1.2s）按播放进度反查应有行号，
+  // 偏差超过 2 行时请求核心层重建歌词时钟，并立即按目标行重新定位。
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!playerState.isPlay) return
+      if (isPauseScrollRef.current) return
+      const lines = lyricLinesRef.current
+      if (lines.length < 2) return
+      const time = playerState.progress.nowPlayTime * 1000
+      if (!Number.isFinite(time)) return
+      let low = 0
+      let high = lines.length - 1
+      let expect = -1
+      while (low <= high) {
+        const mid = (low + high) >> 1
+        const lineTime = lines[mid]?.time
+        if (!Number.isFinite(lineTime)) break
+        if (lineTime <= time) {
+          expect = mid
+          low = mid + 1
+        } else {
+          high = mid - 1
+        }
+      }
+      if (expect < 0) return
+      const current = lineRef.current.line
+      if (Math.abs(expect - current) < 2) return
+      const now = Date.now()
+      if (now - lastResyncAtRef.current < 3000) return
+      lastResyncAtRef.current = now
+      console.warn('[Lyric] line drift detected, realign:', current, '->', expect)
+      resync()
+      lineRef.current.prevLine = current
+      lineRef.current.line = expect
+      handleScrollToActive(expect)
+    }, 1200)
+    return () => clearInterval(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     // line 为负表示当前无歌词/尚未开始，此时也要同步 prevLine，
@@ -496,7 +579,7 @@ export default () => {
 
   const renderItem: FlatListType['renderItem'] = ({ item, index }) => {
     return (
-      <LrcLine line={item} lineNum={index} activeLine={line} onLayout={handleLineLayout} onPress={handleLinePress} />
+      <LrcLine line={item} lineNum={index} activeLine={line} onLayout={handleLineLayout} onPress={handleLinePress} lineColors={lineColors} />
     )
   }
   const getkey: FlatListType['keyExtractor'] = (item, index) => `${index}${item.text}`

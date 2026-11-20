@@ -11,6 +11,8 @@ import { confirmDialog, toast } from '@/utils/tools'
 import FileSelect, { type FileSelectType } from '@/components/common/FileSelect'
 import SortModal, { type SortModalType } from './SortModal'
 import FolderManagerModal, { type FolderManagerModalType } from './FolderManagerModal'
+import FilterModal, { type FilterModalType } from './FilterModal'
+import { useLocalFilterStats } from '@/store/local/hook'
 
 export default memo(() => {
   const theme = useTheme()
@@ -19,7 +21,9 @@ export default memo(() => {
   const scanProgress = useScanProgress()
   const sortModalRef = useRef<SortModalType>(null)
   const folderManagerRef = useRef<FolderManagerModalType>(null)
+  const filterModalRef = useRef<FilterModalType>(null)
   const fileSelectRef = useRef<FileSelectType>(null)
+  const filterStats = useLocalFilterStats()
 
   const handleSelectFolder = useCallback(() => {
     if (isScanning) {
@@ -39,6 +43,10 @@ export default memo(() => {
 
   const handleShowFolderManager = useCallback(() => {
     folderManagerRef.current?.show()
+  }, [])
+
+  const handleShowFilter = useCallback(() => {
+    filterModalRef.current?.show()
   }, [])
 
   const handleScanAll = useCallback(async() => {
@@ -97,6 +105,24 @@ export default memo(() => {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[styles.button, {
+            backgroundColor: filterStats.active ? theme['c-primary'] : theme['c-primary-light-400-alpha-200'],
+          }]}
+          onPress={handleShowFilter}
+        >
+          <Icon
+            name={filterStats.active ? 'checkbox-marked' : 'checkbox-blank-outline'}
+            size={16}
+            color={filterStats.active ? theme['c-font'] : theme['c-primary-font']}
+          />
+          <Text size={13} color={filterStats.active ? theme['c-font'] : theme['c-primary-font']} style={styles.buttonText}>
+            {filterStats.active
+              ? t('local_filter_button_matched', { matched: filterStats.matched, total: filterStats.total })
+              : t('local_filter')}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.button, { backgroundColor: theme['c-primary-light-400-alpha-200'] }]}
           onPress={handleScanAll}
           disabled={isScanning}
@@ -129,6 +155,7 @@ export default memo(() => {
 
       <SortModal ref={sortModalRef} />
       <FolderManagerModal ref={folderManagerRef} />
+      <FilterModal ref={filterModalRef} />
       <FileSelect ref={fileSelectRef} />
     </View>
   )

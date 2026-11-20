@@ -91,6 +91,23 @@ def reactNativeArchitectures() {
     return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
 }
 
+/**
+ * FFmpeg 音频桥接模块（方案A）构建开关
+ *
+ * 1) 从源码编译（默认）：由 CMake 编译 src/main/cpp 下的 JNI 与解码器封装，链接 FFmpeg
+ *    audio-only 裁剪静态库。静态库须先用以下命令生成（CI 会自动执行，本地预编 so 场景不需要）：
+ *      bash android/app/src/main/cpp/scripts/build_ffmpeg_android.sh
+ * 2) 用预编 so（ffmpegUsePrebuiltSo=true）：直接使用已编译好的 libffmpeg_bridge.so，
+ *    放置于 android/app/src/main/jniLibs/<abi>/libffmpeg_bridge.so，不参与 C++ 编译。
+ *    适合无 NDK 编译环境 / 快速验证。
+ *
+ * 覆盖方式：-PffmpegUsePrebuiltSo=true 或 -PffmpegBuildFromSource=false
+ */
+def ffmpegUsePrebuiltSo = (project.findProperty("ffmpegUsePrebuiltSo") ?: "false").toBoolean()
+def ffmpegBuildFromSource = (project.findProperty("ffmpegBuildFromSource")
+        ?: (ffmpegUsePrebuiltSo ? "false" : "true")).toBoolean()
+
+
 // Get version number
 def getNpmPackageJson() {
     def inputFile = new File("../package.json")
@@ -126,6 +143,28 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    // FFmpeg 音频桥接（方案A）：仅在从源码编译时挂载 CMake；
+    // ffmpegUsePrebuiltSo=true 时直接使用 src/main/jniLibs/<abi>/libffmpeg_bridge.so
+    if (ffmpegBuildFromSource) {
+        defaultConfig {
+            externalNativeBuild {
+                cmake {
+                    // 仅编译本次构建涉及的 ABI（随 -PreactNativeArchitectures 变化）
+                    abiFilters(*reactNativeArchitectures())
+                    arguments "-DFFMPEG_LIBS_DIR=${projectDir}/src/main/cpp/ffmpeg/android-libs"
+                }
+            }
+        }
+        externalNativeBuild {
+            cmake {
+                path file("src/main/cpp/CMakeLists.txt")
+                version "3.22.1"
+            }
+        }
+    } else {
+        logger.lifecycle("ffmpeg_bridge: 使用预编 so（src/main/jniLibs），跳过 CMake 编译")
     }
 
     splits {

@@ -5,6 +5,9 @@ import type { ComponentType } from 'react'
  *
  * 独立于既有 Theme 体系（src/theme/themes），仅用于皮肤内部版式骨架取色，
  * 不参与 c-* 语义色映射，避免影响原版组件的表现。
+ *
+ * 每个皮肤都应提供 light / dark 两套色板，由 useSkin / useSkinMode 依据
+ * 当前全局主题的昼夜状态（theme.isDark）自动选择，实现随系统昼夜自动切换。
  */
 export interface SkinPalette {
   /** 页面底色 */
@@ -29,6 +32,15 @@ export interface SkinPalette {
   radius: number
 }
 
+/** 昼夜色板方案 */
+export type SkinPaletteScheme = 'light' | 'dark'
+
+/** 补全后的昼夜双色板 */
+export interface SkinPalettes {
+  light: SkinPalette
+  dark: SkinPalette
+}
+
 /** 横屏首页皮肤组件，替换横屏首页整体骨架 */
 export type SkinHomeHorizontal = ComponentType
 
@@ -38,12 +50,19 @@ export type SkinHomeVertical = ComponentType
 /** 横屏播放详情页皮肤组件 */
 export type SkinPlayDetailHorizontal = ComponentType<{ componentId: string }>
 
+/** 竖屏播放详情页皮肤组件 */
+export type SkinPlayDetailVertical = ComponentType<{ componentId: string }>
+
 /**
  * 皮肤定义
  *
  * 所有版式组件均为可选：
  * - 未提供时该页面走洛雪原生实现，保证皮肤可以只接管部分页面；
  * - default 皮肤不提供任何版式组件，渲染路径与改造前完全一致。
+ *
+ * 取色优先级（低 → 高）：
+ *   default 皮肤同昼夜色板兜底 -> palette（昼夜共用基色） -> palettes.light / palettes.dark
+ * 因此老皮肤只写 palette 也仍然可用，只是昼夜不区分。
  */
 export interface SkinDefinition {
   id: string
@@ -51,14 +70,25 @@ export interface SkinDefinition {
   name: string
   /** 设置页展示描述 */
   description: string
-  /** 皮肤色板，未提供的字段回落到 defaultSkinPalette */
+  /** 皮肤色板（昼夜共用），未提供的字段回落到 default 皮肤同昼夜色板 */
   palette?: Partial<SkinPalette>
+  /** 昼夜专属色板，优先于 palette */
+  palettes?: {
+    light?: Partial<SkinPalette>
+    dark?: Partial<SkinPalette>
+  }
   HomeHorizontal?: SkinHomeHorizontal
   HomeVertical?: SkinHomeVertical
   PlayDetailHorizontal?: SkinPlayDetailHorizontal
+  PlayDetailVertical?: SkinPlayDetailVertical
 }
 
 /** 补全色板后的皮肤定义 */
 export interface ResolvedSkinDefinition extends SkinDefinition {
+  /** 当前昼夜下的色板 */
   palette: SkinPalette
+  /** 昼夜双色板（已补全） */
+  palettes: SkinPalettes
+  /** 当前是否深色（跟随全局主题 theme.isDark） */
+  isDark: boolean
 }

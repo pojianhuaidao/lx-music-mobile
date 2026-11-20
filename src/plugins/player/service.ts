@@ -7,6 +7,7 @@ import { isTempId, isEmpty } from './utils'
 import { exitApp } from '@/core/common'
 import { getCurrentTrackId } from './playList'
 import { pause, play, playNext, playPrev } from '@/core/player/player'
+import { isFFmpegCoreActive } from '@/core/localFFmpeg'
 
 let isInitialized = false
 
@@ -81,6 +82,8 @@ const registerPlaybackService = async() => {
   TrackPlayer.addEventListener(TPEvent.PlaybackError, async(err: any) => {
     try {
       console.log('playback-error', err)
+      // FFmpeg 内核播放时，系统内核的空队列/残留轨道报错与本曲无关，交由衔接层自行上报
+      if (isFFmpegCoreActive()) return
       global.app_event.error()
       global.app_event.playerError()
     } catch (e) {
@@ -95,6 +98,9 @@ const registerPlaybackService = async() => {
 
   TrackPlayer.addEventListener(TPEvent.PlaybackState, async info => {
     try {
+      // FFmpeg 内核播放时，播放状态、进度、结束事件均由衔接层派发，
+      // 系统内核的 Paused/Stopped 只是「让位」动作，不能反过来覆盖真实播放状态
+      if (isFFmpegCoreActive()) return
       // 获取音频 URL 期间（gettingUrlId）以及临时音源状态下的中间态会污染播放状态，需要过滤。
       // 但 Playing 是歌词时间轴启动所必需的关键事件，必须放行：否则「边取 URL 边恢复播放」
       // 的链路下 Playing 被丢弃，歌词不会启动/重建时钟，表现为播放中歌词不滚动。
@@ -146,6 +152,9 @@ const registerPlaybackService = async() => {
       })
 
       // console.log('global.lx.playerTrackId====>', global.lx.playerTrackId)
+      // FFmpeg 内核下系统内核队列始终为空，isEmpty() 必然为 true，
+      // 若继续走下面的分支会把每一首都在中途误判为「播放结束」并跳到下一首
+      if (isFFmpegCoreActive()) return
       if (isEmpty()) {
         // console.log('====TEMP PAUSE====')
         await TrackPlayer.pause()

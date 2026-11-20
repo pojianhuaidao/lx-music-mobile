@@ -16,6 +16,13 @@ jobs:
       - name: Setup Env
         uses: ./.github/actions/setup
 
+      # FFmpeg 音频桥接模块（方案A）：beta-pack 编全 ABI，与 gradle.properties 的
+      # reactNativeArchitectures 保持一致
+      - name: Build FFmpeg
+        uses: ./.github/actions/build-ffmpeg
+        with:
+          abis: armeabi-v7a,arm64-v8a,x86,x86_64
+
       - name: Build Packages
         shell: bash
         run: |

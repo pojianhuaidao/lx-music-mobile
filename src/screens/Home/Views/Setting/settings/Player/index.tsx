@@ -14,6 +14,7 @@ import IsShowLyricRoma from './IsShowLyricRoma'
 import IsS2T from './IsS2T'
 import DefaultShowLyric from './DefaultShowLyric'
 import MaxCache from './MaxCache'
+import DecodeKernel from './DecodeKernel'
 import { useI18n } from '@/lang'
 
 
@@ -35,6 +36,7 @@ export default memo(() => {
       <IsS2T />
       <MaxCache />
       <PlayHighQuality />
+      <DecodeKernel />
     </Section>
   )
 })

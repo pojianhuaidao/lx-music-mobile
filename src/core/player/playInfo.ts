@@ -5,6 +5,7 @@ import { getListMusicSync } from '@/utils/listManage'
 import { setProgress } from '@/core/player/progress'
 import { LIST_IDS } from '@/config/constant'
 import { localState } from '@/store/local'
+import { filterLocalMusics, getLocalFilterOptions } from '@/utils/localFilter'
 
 
 export const setMusicInfo = (musicInfo: Partial<LX.Player.MusicInfo>) => {
@@ -140,6 +141,7 @@ export const setPlayMusicInfo = (listId: string | null, musicInfo: LX.Download.L
 export const getList = (listId: string | null): LX.Music.MusicInfo[] | LX.Download.ListItem[] => {
   // return listId == LIST_ID_DOWNLOAD ? downloadList : getListMusicSync(listId)
   if (listId == LIST_IDS.DOWNLOAD) return []
-  if (listId == 'local') return localState.list
+  // 本地列表按 local.filter.* 过滤后再进队列，保证界面列表与播放队列一致
+  if (listId == 'local') return filterLocalMusics(localState.list, getLocalFilterOptions())
   return getListMusicSync(listId)
 }

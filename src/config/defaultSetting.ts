@@ -89,6 +89,18 @@ const defaultSetting: LX.AppSetting = {
   'theme.glassOpacity': 0.55,
   // 外观皮肤 id，default = 洛雪原版外观，其他值由 src/skin/registry.ts 注册
   'theme.skinId': 'default',
+
+  // 本地音乐：默认只播本地文件，解码失败不静默换成在线源
+  'local.playbackMode': 'localOnly',
+  // 本地音乐解码内核：auto = 系统内核优先、不足时切内置 FFmpeg 内核；system = 只用系统内核
+  'local.decodeKernel': 'auto',
+  'local.allowOnlinePic': true,
+  'local.allowOnlineLyric': true,
+  'local.filter.enabled': false,
+  'local.filter.minDuration': 0,
+  'local.filter.maxDuration': 0,
+  'local.filter.exts': '',
+  'local.filter.onlyDecodable': false,
 }
 
 

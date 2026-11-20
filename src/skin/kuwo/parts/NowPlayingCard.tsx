@@ -8,7 +8,8 @@ import { createStyle } from '@/utils/tools'
 import { useIsPlay, usePlayerMusicInfo, useProgress } from '@/store/player/hook'
 import { playNext, playPrev, togglePlay } from '@/core/player/player'
 import { NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
-import { kuwoPalette, kuwoOnDark } from '../palette'
+import { useKuwoTheme } from '../theme'
+import type { KuwoOnColor, SkinPalette } from '../palette'
 
 interface NowPlayingCardProps {
   onOpenPlayDetail: () => void
@@ -22,6 +23,8 @@ interface NowPlayingCardProps {
  * 播放控制直接复用 core/player 的既有能力，不改动播放器内核。
  */
 export default memo(({ onOpenPlayDetail, onOpenLove }: NowPlayingCardProps) => {
+  const { palette: skinPalette, on: skinOn } = useKuwoTheme()
+  const styles = useMemo(() => createStyles(skinPalette, skinOn), [skinPalette, skinOn])
   const musicInfo = usePlayerMusicInfo()
   const isPlay = useIsPlay()
   const progress = useProgress()
@@ -50,14 +53,14 @@ export default memo(({ onOpenPlayDetail, onOpenLove }: NowPlayingCardProps) => {
       </TouchableOpacity>
       <View style={styles.info}>
         <View style={styles.titleRow}>
-          <Text size={14} color={kuwoOnDark.textPrimary} numberOfLines={1} style={styles.name}>
+          <Text size={14} color={skinOn.textPrimary} numberOfLines={1} style={styles.name}>
             {musicInfo.name || '暂无播放'}
           </Text>
           <TouchableOpacity activeOpacity={0.7} onPress={onOpenLove} style={styles.loveBtn}>
-            <Icon name="love" size={14} color={kuwoOnDark.textSecondary} />
+            <Icon name="love" size={14} color={skinOn.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text size={11} color={kuwoOnDark.textSecondary} numberOfLines={1}>
+        <Text size={11} color={skinOn.textSecondary} numberOfLines={1}>
           {musicInfo.singer || '酷我车机版外观'}
         </Text>
         <View style={styles.progressWrap}>
@@ -65,19 +68,19 @@ export default memo(({ onOpenPlayDetail, onOpenLove }: NowPlayingCardProps) => {
             <View style={{ ...styles.progressBar, ...progressStyle }} />
           </View>
           <View style={styles.timeRow}>
-            <Text size={9} color={kuwoOnDark.textSecondary}>{progress.nowPlayTimeStr || '00:00'}</Text>
-            <Text size={9} color={kuwoOnDark.textSecondary}>{progress.maxPlayTimeStr || '00:00'}</Text>
+            <Text size={9} color={skinOn.textSecondary}>{progress.nowPlayTimeStr || '00:00'}</Text>
+            <Text size={9} color={skinOn.textSecondary}>{progress.maxPlayTimeStr || '00:00'}</Text>
           </View>
         </View>
         <View style={styles.controls}>
           <TouchableOpacity activeOpacity={0.7} onPress={() => { void playPrev() }} style={styles.ctrlBtn}>
-            <Icon name="prevMusic" size={16} color={kuwoOnDark.textPrimary} />
+            <Icon name="prevMusic" size={16} color={skinOn.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} onPress={handleTogglePlay} style={{ ...styles.ctrlBtn, ...styles.playBtn }}>
-            <Icon name={isPlay ? 'pause' : 'play'} size={16} color={kuwoPalette.nowPlayingBg} />
+            <Icon name={isPlay ? 'pause' : 'play'} size={16} color={skinPalette.nowPlayingBg} />
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} onPress={() => { void playNext() }} style={styles.ctrlBtn}>
-            <Icon name="nextMusic" size={16} color={kuwoOnDark.textPrimary} />
+            <Icon name="nextMusic" size={16} color={skinOn.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -85,18 +88,18 @@ export default memo(({ onOpenPlayDetail, onOpenLove }: NowPlayingCardProps) => {
   )
 })
 
-const styles = createStyle({
+const createStyles = (skinPalette: SkinPalette, skinOn: KuwoOnColor) => createStyle({
   container: {
     flex: 1,
-    backgroundColor: kuwoPalette.nowPlayingBg,
-    borderRadius: kuwoPalette.radius,
+    backgroundColor: skinPalette.nowPlayingBg,
+    borderRadius: skinPalette.radius,
     padding: scaleSizeW(10),
   },
   coverWrap: {
     flex: 1,
     minHeight: 60,
     width: '100%',
-    borderRadius: kuwoPalette.radius * 0.6,
+    borderRadius: skinPalette.radius * 0.6,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
@@ -126,13 +129,13 @@ const styles = createStyle({
   progressTrack: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: kuwoOnDark.track,
+    backgroundColor: skinOn.track,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
     borderRadius: 2,
-    backgroundColor: kuwoPalette.brand,
+    backgroundColor: skinPalette.brand,
   },
   timeRow: {
     flexDirection: 'row',
@@ -154,7 +157,7 @@ const styles = createStyle({
     marginHorizontal: scaleSizeW(4),
   },
   playBtn: {
-    backgroundColor: kuwoPalette.brand,
+    backgroundColor: skinPalette.brand,
     width: 34,
     height: 34,
     borderRadius: 17,

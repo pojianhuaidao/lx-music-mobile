@@ -407,6 +407,54 @@ declare global {
        * 嵌入罗马音
        */
       'download.embedLyricRoma': boolean
+
+      /**
+       * 本地音乐播放模式
+       * localOnly：只播放本地文件，解码失败不换源；autoFallback：允许在线换源兜底
+       */
+      'local.playbackMode': 'localOnly' | 'autoFallback'
+
+      /**
+       * 本地音乐解码内核偏好
+       * auto：系统内核优先，ape、wma、dsf 等系统内核无法解码的格式自动切换到内置 FFmpeg 内核
+       * system：只使用系统内核，内置 FFmpeg 内核不参与解码
+       */
+      'local.decodeKernel': 'auto' | 'system'
+
+      /**
+       * 本地音乐是否允许使用在线封面（关闭后只用文件内嵌封面）
+       */
+      'local.allowOnlinePic': boolean
+
+      /**
+       * 本地音乐是否允许使用在线歌词（关闭后只用文件内嵌歌词）
+       */
+      'local.allowOnlineLyric': boolean
+
+      /**
+       * 是否启用本地音乐列表过滤
+       */
+      'local.filter.enabled': boolean
+
+      /**
+       * 过滤：最短时长（秒），0 表示不限
+       */
+      'local.filter.minDuration': number
+
+      /**
+       * 过滤：最长时长（秒），0 表示不限
+       */
+      'local.filter.maxDuration': number
+
+      /**
+       * 过滤：只显示指定扩展名，逗号分隔，空字符串表示不限
+       */
+      'local.filter.exts': string
+
+      /**
+       * 过滤：只显示播放内核可解码的文件
+       */
+      'local.filter.onlyDecodable': boolean
     }
   }
 }
