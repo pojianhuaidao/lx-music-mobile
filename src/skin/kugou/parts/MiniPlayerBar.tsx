@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { Dimensions, PixelRatio, TouchableOpacity, View } from 'react-native'
 import Image from '@/components/common/Image'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
@@ -17,16 +17,32 @@ interface MiniPlayerBarProps {
 }
 
 /**
+ * 播放条高度占屏高的目标比例
+ * 车机横屏窗口高度普遍偏矮（如 2400x896 视口高度仅约 358dp），
+ * 播放条若按设计稿 58 基准渲染会占到屏高 20% 以上，严重挤压列表与设置页
+ */
+const BAR_HEIGHT_RATIO = 0.15
+/** 下限只保证封面/按钮/两行文案不被裁切，不再用设计稿基准的一半兜底 */
+const MIN_BAR_HEIGHT = 52
+
+/**
  * 计算播放条高度与内部元素缩放比
  *
- * 基准高度取设计稿 58，同时受窗口高度约束（不超过 16%），
- * 避免横屏窄高窗口下播放条大面积遮挡列表。
+ * 高度目标 = 窗口高度 * 15%，上限仍取设计稿基准（大窗口下保持原有视觉），
+ * 下限只保内容不溢出。
+ * 部分车机 ROM 的 windowSize 上报的是像素值而非 dp，这里先与 Dimensions 的 dp 值比对，
+ * 明显偏大时按 density 折算，保证 15% 是真实屏高占比。
  */
 const getBarMetrics = (winHeight: number) => {
   const baseH = scaleSizeH(58)
-  const limitH = winHeight > 0 ? Math.round(winHeight * 0.16) : baseH
-  const barH = Math.max(Math.round(baseH * 0.5), Math.min(baseH, limitH))
-  return { barH, ratio: Math.min(1, barH / baseH) }
+  const dims = Dimensions.get('window')
+  const pixelRatio = PixelRatio.get() || 1
+  const screenHeight = winHeight > 0
+    ? (winHeight > dims.height * 1.2 ? winHeight / pixelRatio : winHeight)
+    : dims.height
+  const targetH = Math.round(screenHeight * BAR_HEIGHT_RATIO)
+  const barH = Math.max(MIN_BAR_HEIGHT, Math.min(baseH, targetH))
+  return { barH, ratio: Math.min(1, barH / Math.max(1, baseH)) }
 }
 
 /**

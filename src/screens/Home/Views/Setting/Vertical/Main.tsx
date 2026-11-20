@@ -16,6 +16,8 @@ type FlatListType = FlatListProps<SettingScreenIds>
 
 
 const styles = createStyle({
+  // 内容区显式撑满可用高度，避免车机矮窗口下可视区被压缩到屏高 30% 以下
+  list: { flex: 1 },
   content: {
     paddingLeft: 15,
     paddingRight: 15,
@@ -50,6 +52,7 @@ export default () => {
       keyboardShouldPersistTaps={'always'}
       renderItem={renderItem}
       keyExtractor={getkey}
+      style={styles.list}
       contentContainerStyle={styles.content}
       maxToRenderPerBatch={2}
       // updateCellsBatchingPeriod={80}
