@@ -23,6 +23,8 @@ runs:
       id: ffmpeg-version
       if: inputs.enabled == 'true'
       shell: bash
+      env:
+        FFMPEG_ABIS_INPUT: ${{ inputs.abis }}
       run: |
         script="android/app/src/main/cpp/scripts/build_ffmpeg_android.sh"
         version=""
@@ -41,7 +43,9 @@ runs:
         fi
         echo "version=$version" >> "$GITHUB_OUTPUT"
         echo "ndk=$ndk" >> "$GITHUB_OUTPUT"
-        echo "FFmpeg 版本: $version, NDK: $ndk"
+        abis_key="$(printf '%s' "${FFMPEG_ABIS_INPUT:-arm64-v8a}" | tr ',' '_')"
+        echo "abis_key=$abis_key" >> "$GITHUB_OUTPUT"
+        echo "FFmpeg 版本: $version, NDK: $ndk, ABI: $abis_key"
 
     - name: Cache FFmpeg static libs
       id: cache-ffmpeg
@@ -50,7 +54,7 @@ runs:
       with:
         path: android/app/src/main/cpp/ffmpeg/android-libs
         # cache key 不允许逗号，把 ABI 列表里的逗号换成下划线
-        key: ffmpeg-${{ steps.ffmpeg-version.outputs.version }}-${{ replace(inputs.abis, ',', '_') }}-ndk${{ steps.ffmpeg-version.outputs.ndk }}-${{ hashFiles('android/app/src/main/cpp/scripts/build_ffmpeg_android.sh') }}
+        key: ffmpeg-${{ steps.ffmpeg-version.outputs.version }}-${{ steps.ffmpeg-version.outputs.abis_key }}-ndk${{ steps.ffmpeg-version.outputs.ndk }}-${{ hashFiles('android/app/src/main/cpp/scripts/build_ffmpeg_android.sh') }}
 
     - name: Build FFmpeg static libs
       if: inputs.enabled == 'true' && steps.cache-ffmpeg.outputs.cache-hit != 'true'
