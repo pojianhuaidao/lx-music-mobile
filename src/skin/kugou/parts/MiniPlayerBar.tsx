@@ -20,17 +20,28 @@ interface MiniPlayerBarProps {
  * 车机横屏窗口高度普遍偏矮（如 2400x896 视口高度仅约 358dp），
  * 播放条若按设计稿 58 基准渲染会占到屏高 20% 以上，严重挤压列表与设置页
  */
-const BAR_HEIGHT_RATIO = 0.15
-/** 下限只保证封面/按钮/两行文案不被裁切，不再用设计稿基准的一半兜底 */
+const BAR_HEIGHT_RATIO = 0.13
+/** 高度地板上限：低矮窗口下按屏高比例收缩，最多取该值 */
 const MIN_BAR_HEIGHT = 52
+/** 极矮窗口（如 2400x896@3，视口仅约 298dp）下的绝对下限，仅保证封面/按钮/两行文案不被裁切 */
+const MIN_BAR_HEIGHT_FLOOR = 40
+
+/**
+ * 按屏高计算播放条高度地板
+ * 屏高越小地板越低（屏高 13%），并夹在 [MIN_BAR_HEIGHT_FLOOR, MIN_BAR_HEIGHT] 之间，
+ * 避免固定 52dp 地板在低 dp 窗口下占据过多可视高度、挤压列表内容。
+ */
+const getMinBarHeight = (screenHeight: number) => {
+  return Math.round(Math.max(MIN_BAR_HEIGHT_FLOOR, Math.min(MIN_BAR_HEIGHT, screenHeight * BAR_HEIGHT_RATIO)))
+}
 
 /**
  * 计算播放条高度与内部元素缩放比
  *
- * 高度目标 = 窗口高度 * 15%，上限仍取设计稿基准（大窗口下保持原有视觉），
+ * 高度目标 = 窗口高度 * 13%，上限仍取设计稿基准（大窗口下保持原有视觉），
  * 下限只保内容不溢出。
  * 部分车机 ROM 的 windowSize 上报的是像素值而非 dp，这里先与 Dimensions 的 dp 值比对，
- * 明显偏大时按 density 折算，保证 15% 是真实屏高占比。
+ * 明显偏大时按 density 折算，保证 13% 是真实屏高占比。
  */
 const getBarMetrics = (winHeight: number) => {
   const baseH = scaleSizeH(58)
@@ -40,7 +51,7 @@ const getBarMetrics = (winHeight: number) => {
     ? (winHeight > dims.height * 1.2 ? winHeight / pixelRatio : winHeight)
     : dims.height
   const targetH = Math.round(screenHeight * BAR_HEIGHT_RATIO)
-  const barH = Math.max(MIN_BAR_HEIGHT, Math.min(baseH, targetH))
+  const barH = Math.max(getMinBarHeight(screenHeight), Math.min(baseH, targetH))
   return { barH, ratio: Math.min(1, barH / Math.max(1, baseH)) }
 }
 
@@ -53,7 +64,7 @@ const getBarMetrics = (winHeight: number) => {
 export default memo(({ onOpenPlayDetail }: MiniPlayerBarProps) => {
   const { palette: skinPalette, on: skinOn } = useKugouTheme()
   // 窗口高度直接取 Dimensions 的实时 dp 值：windowSizeTools 在部分车机 ROM 上
-  // 报告的是像素值或旋转前的陈旧值，按 15% 折算会把播放条顶回原基准高度
+  // 报告的是像素值或旋转前的陈旧值，按屏高比例折算会把播放条顶回原基准高度
   const [winHeight, setWinHeight] = useState(() => Dimensions.get('window').height)
   useEffect(() => {
     const handleChange = () => {

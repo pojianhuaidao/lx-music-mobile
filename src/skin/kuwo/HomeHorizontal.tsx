@@ -6,6 +6,7 @@ import commonState from '@/store/common/state'
 import { useNavActiveId, useStatusbarHeight } from '@/store/common/hook'
 import { setNavActiveId } from '@/core/common'
 import { navigations } from '@/navigation'
+import useWindowSize from '@/utils/hooks/useWindowSize'
 import { createStyle } from '@/utils/tools'
 import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
 import { useKuwoTheme } from './theme'
@@ -24,7 +25,11 @@ import ContentGrid from './parts/ContentGrid'
  */
 export default memo(() => {
   const { palette: skinPalette, on: skinOn } = useKuwoTheme()
-  const styles = useMemo(() => createStyles(skinPalette, skinOn), [skinPalette, skinOn])
+  // 订阅窗口尺寸：改分辨率 / 旋屏 / 进出小窗后立即用新的缩放基准重算样式
+  const winSize = useWindowSize()
+  const winW = winSize.width
+  const winH = winSize.height
+  const styles = useMemo(() => createStyles(skinPalette, skinOn), [skinPalette, skinOn, winW, winH])
   const navActiveId = useNavActiveId()
   const statusBarHeight = useStatusbarHeight()
   // true = 处于酷我推荐首页；false = 已进入某个导航分组页

@@ -1,3 +1,7 @@
+### 修复
+
+- 修复酷我 / QQ / 酷狗 / 网易云四款皮肤在横屏低高度窗口（车机全屏 2270×896、模拟器横屏 1621×640dp）下主界面按钮图标显示不完整、被裁切的问题：酷我左侧导航栏改为可滚动并按可用高度自动紧凑，播控按钮按卡片宽度动态等分尺寸与间距；QQ / 酷狗 / 网易云迷你播放条高度改为按屏高 13% 计算并夹在 40~52 之间，不再挤压主体内容；四款皮肤主界面接入窗口尺寸监听，横竖屏切换与窗口尺寸变化后立即重排
+
 ### 其他
 
 - 清理废代码：移除自动更新链路（core/version、VersionModal 及其注册、store/version、utils/version.js 的 downloadNewVersion/updateApp、ignoreVersion 相关存储键与事件）及 16 个无引用导出（setDesktopLyricPosition、scanFolder、updateUserListPosition、clearListMusics、getSortList、parseUrlParams、scaleSizeHR、onWindowSizeChange、handleAddToList、useSourceNames、useDownloadConfig、useRunningDownloadsCount、onModalDismissed、useNavigationCommandComplete、useNavigationComponentDidDisappear、useAsyncStorage）与 2 个无引用文件（cryptoTest.ts、ScaledImage.tsx），不涉及功能变更
