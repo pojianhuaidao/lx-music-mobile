@@ -4,7 +4,8 @@ import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import { createStyle, confirmDialog, exitApp } from '@/utils/tools'
 import type { NAV_ID_Type } from '@/config/constant'
-import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
+import { scaleSizeH, scaleSizeW, setSpText } from '@/utils/pixelRatio'
+import { getNavTabMetrics, getNavTabWidth, getNavTabsContentWidth } from '@/skin/common/navTabs'
 import { useKuwoTheme } from '../theme'
 import type { KuwoOnColor, SkinPalette } from '../palette'
 
@@ -36,6 +37,18 @@ interface TopBarProps {
 export default memo(({ activeId, isHome, onOpen, onHome }: TopBarProps) => {
   const { palette: skinPalette, on: skinOn } = useKuwoTheme()
   const styles = useMemo(() => createStyles(skinPalette, skinOn), [skinPalette, skinOn])
+  // 导航项按「文字长度 + 实际渲染字号」显式算出固定宽度（含最小宽度兜底），并整条横向可滚：
+  // 窄横屏下任何一项都不会被压缩或裁切，也保证 ScrollView 有真实的横向滚动范围
+  const navTabs = useMemo(() => getNavTabMetrics({
+    padH: scaleSizeW(12),
+    gap: scaleSizeW(4),
+    font: 13,
+  }), [])
+  const tabLayout = useMemo(() => {
+    const renderedFontSize = setSpText(navTabs.fontSize)
+    const tabWidths = KUWO_TABS.map(item => getNavTabWidth(item.label, renderedFontSize, navTabs.padH))
+    return { tabWidths, contentWidth: getNavTabsContentWidth(tabWidths, navTabs.gap) }
+  }, [navTabs])
   const handleExit = useCallback(() => {
     void confirmDialog({
       message: '是否退出洛雪音乐？',
@@ -54,21 +67,26 @@ export default memo(({ activeId, isHome, onOpen, onHome }: TopBarProps) => {
       </View>
       <ScrollView
         style={styles.tabs}
-        contentContainerStyle={styles.tabsContent}
+        contentContainerStyle={[styles.tabsContent, { width: tabLayout.contentWidth }]}
         horizontal
         showsHorizontalScrollIndicator={false}
       >
         {
-          KUWO_TABS.map(({ id, label }) => {
+          KUWO_TABS.map(({ id, label }, index) => {
             const isActive = !isHome && activeId == id
             return (
               <TouchableOpacity
                 key={id}
                 activeOpacity={0.7}
-                style={{ ...styles.tab, backgroundColor: isActive ? skinPalette.selectedBg : 'transparent' }}
+                style={{
+                  ...styles.tab,
+                  backgroundColor: isActive ? skinPalette.selectedBg : 'transparent',
+                  width: tabLayout.tabWidths[index],
+                  marginRight: navTabs.gap,
+                }}
                 onPress={() => { onOpen(id) }}
               >
-                <Text size={13} color={isActive ? skinPalette.textPrimary : skinPalette.textSecondary}>{label}</Text>
+                <Text numberOfLines={1} size={navTabs.fontSize} color={isActive ? skinPalette.textPrimary : skinPalette.textSecondary}>{label}</Text>
               </TouchableOpacity>
             )
           })
@@ -125,15 +143,25 @@ const createStyles = (skinPalette: SkinPalette, skinOn: KuwoOnColor) => createSt
     marginBottom: 4,
     backgroundColor: skinPalette.brand,
   },
+  // 导航条容器：占满品牌区与右侧按钮之间的剩余宽度，内容超出即可横向滚动
+  // 不固定高度（按内容自适应），避免极端缩放下导航项在垂直方向被裁
   tabs: {
-    flexGrow: 1,
-    flexShrink: 1,
+    flex: 1,
   },
+  // 内容容器：显式横向排布 + 固定总宽（由 tabLayout 注入），保证内容宽于视口时可横向滚动
   tabsContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    flexGrow: 0,
+    flexShrink: 0,
   },
   tab: {
-    paddingHorizontal: scaleSizeW(12),
+    // 关键：宽度由「文字宽度 + 内边距」显式算出（见 tabLayout），不参与任何压缩/分配
+    flexGrow: 0,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 0,
     paddingVertical: scaleSizeH(5),
     borderRadius: 13,
     marginRight: scaleSizeW(4),

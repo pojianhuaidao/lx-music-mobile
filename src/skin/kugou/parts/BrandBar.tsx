@@ -3,7 +3,8 @@ import { ScrollView, TouchableOpacity, View } from 'react-native'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import { createStyle } from '@/utils/tools'
-import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
+import { scaleSizeH, scaleSizeW, setSpText } from '@/utils/pixelRatio'
+import { getNavTabMetrics, getNavTabWidth, getNavTabsContentWidth } from '@/skin/common/navTabs'
 import type { NAV_ID_Type } from '@/config/constant'
 import { useKugouTheme } from '../theme'
 import type { KugouOnColor, KugouPalette } from '../palette'
@@ -38,6 +39,18 @@ interface BrandBarProps {
 export default memo(({ activeId, compact = false, onOpen }: BrandBarProps) => {
   const { palette: skinPalette, on: skinOn } = useKugouTheme()
   const styles = useMemo(() => createStyles(skinPalette, skinOn, compact), [skinPalette, skinOn, compact])
+  // 导航项按「文字长度 + 实际渲染字号」显式算出固定宽度（含最小宽度兜底），并整条横向可滚：
+  // 窄横屏下任何一项都不会被压缩或裁切，也保证 ScrollView 有真实的横向滚动范围
+  const navTabs = useMemo(() => getNavTabMetrics({
+    padH: scaleSizeW(compact ? 15 : 12),
+    gap: scaleSizeW(8),
+    font: compact ? 14 : 13,
+  }), [compact])
+  const tabLayout = useMemo(() => {
+    const renderedFontSize = setSpText(navTabs.fontSize)
+    const tabWidths = KUGOU_TABS.map(item => getNavTabWidth(item.label, renderedFontSize, navTabs.padH))
+    return { tabWidths, contentWidth: getNavTabsContentWidth(tabWidths, navTabs.gap) }
+  }, [navTabs])
 
   return (
     <View style={styles.container}>
@@ -49,20 +62,26 @@ export default memo(({ activeId, compact = false, onOpen }: BrandBarProps) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabList}
+        contentContainerStyle={[styles.tabList, { width: tabLayout.contentWidth }]}
         style={styles.tabScroll}
       >
-        {KUGOU_TABS.map(item => {
+        {KUGOU_TABS.map((item, index) => {
           const isActive = activeId === item.id
           return (
             <TouchableOpacity
               key={item.id}
               activeOpacity={0.75}
               onPress={() => { onOpen(item.id) }}
-              style={{ ...styles.tabItem, ...(isActive ? styles.tabItemActive : null) }}
+              style={{
+                ...styles.tabItem,
+                ...(isActive ? styles.tabItemActive : null),
+                width: tabLayout.tabWidths[index],
+                marginRight: navTabs.gap,
+              }}
             >
               <Text
-                size={compact ? 14 : 13}
+                numberOfLines={1}
+                size={navTabs.fontSize}
                 color={isActive ? '#FFFFFF' : skinPalette.textSecondary}
                 style={isActive ? styles.tabTextActive : styles.tabText}
               >
@@ -108,15 +127,26 @@ const createStyles = (skinPalette: KugouPalette, skinOn: KugouOnColor, compact: 
     marginLeft: scaleSizeW(6),
     marginTop: scaleSizeH(4),
   },
+  // 导航条容器：占满品牌区与右侧按钮之间的剩余宽度，内容超出即可横向滚动
+  // 不固定高度（按内容自适应），避免极端缩放下导航项在垂直方向被裁
   tabScroll: {
     flex: 1,
   },
+  // 内容容器：显式横向排布 + 固定总宽（由 tabLayout 注入），保证内容宽于视口时可横向滚动
   tabList: {
+    flexDirection: 'row',
     alignItems: 'center',
+    flexGrow: 0,
+    flexShrink: 0,
     paddingRight: scaleSizeW(8),
   },
   tabItem: {
-    paddingHorizontal: scaleSizeW(compact ? 15 : 12),
+    // 关键：宽度由「文字宽度 + 内边距」显式算出（见 tabLayout），不参与任何压缩/分配
+    flexGrow: 0,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 0,
     paddingVertical: scaleSizeH(compact ? 7 : 6),
     borderRadius: scaleSizeW(18),
     marginRight: scaleSizeW(8),
